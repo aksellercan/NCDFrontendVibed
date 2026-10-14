@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { downloadFile } from "../Functions/DownloadFile";
 
 const VIDEO_EXTENSIONS = [".mp4", ".webm", ".ogg", ".mov", ".avi", ".mkv"];
@@ -14,14 +14,19 @@ interface FilePreviewModalProps {
   onClose: () => void;
   onDeleted: () => void;
   onRenamed: () => void;
+  onGoToFolder?: () => void;
+  onUnmarked?: () => void;
 }
 
-export function FilePreviewModal({ fileId, fileName, onClose, onDeleted, onRenamed }: FilePreviewModalProps) {
+export function FilePreviewModal({ fileId, fileName, onClose, onDeleted, onRenamed, onGoToFolder, onUnmarked }: FilePreviewModalProps) {
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(fileName);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const fileUrl = `${process.env.REACT_APP_API_URL}/api/file/download?fileid=${fileId}`;
+  const [fileUrl, setFileUrl] = useState("");
+  useEffect(() => {
+    setFileUrl(`${process.env.REACT_APP_API_URL}/api/v1/file/download?fileid=${fileId}`);
+  }, [fileId]);
   const isVideo = isVideoFile(fileName);
 
   function handleOverlayClick(e: React.MouseEvent) {
@@ -38,7 +43,7 @@ export function FilePreviewModal({ fileId, fileName, onClose, onDeleted, onRenam
       return;
     }
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/filesystem/file/rename`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/filesystem/file/rename`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -65,7 +70,7 @@ export function FilePreviewModal({ fileId, fileName, onClose, onDeleted, onRenam
 
   async function handleDelete() {
     try {
-      await fetch(`${process.env.REACT_APP_API_URL}/api/filesystem/file/remove?fileid=${fileId}`, {
+      await fetch(`${process.env.REACT_APP_API_URL}/api/v1/filesystem/file/remove?fileid=${fileId}`, {
         method: "DELETE",
         credentials: "include"
       }).then(r => r.json());
@@ -83,16 +88,26 @@ export function FilePreviewModal({ fileId, fileName, onClose, onDeleted, onRenam
         <button className="preview-close" onClick={onClose}>✕</button>
         <div className="preview-content-container">
           {isVideo ? (
-            <video src={fileUrl} controls className="preview-video" />
+            <video src={fileUrl || undefined} controls className="preview-video" />
           ) : (
-            <img src={fileUrl} alt={fileName} className="preview-image" />
+            <img src={fileUrl || undefined} alt={fileName} className="preview-image" />
           )}
         </div>
         <p className="preview-filename">{fileName}</p>
         <div className="preview-actions">
-          <button className="preview-btn preview-download-btn" onClick={() => downloadFile(fileId)}>
+          <button className="preview-btn preview-download-btn" onClick={() => downloadFile(fileId, fileName)}>
             Download
           </button>
+          {onGoToFolder && (
+            <button className="preview-btn preview-folder-btn" onClick={() => { onClose(); onGoToFolder(); }}>
+              Go to folder
+            </button>
+          )}
+          {onUnmarked && (
+            <button className="preview-btn preview-mark-btn" onClick={() => { onClose(); onUnmarked(); }}>
+              Unmark
+            </button>
+          )}
           {renaming ? (
             <div className="preview-rename-inline">
               <input

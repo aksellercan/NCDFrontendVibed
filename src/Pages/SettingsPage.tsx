@@ -46,7 +46,7 @@ export function SettingsPage() {
 
   async function fetchUserInfo() {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/user/info`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/user/info`, {
         method: "GET",
         credentials: "include"
       }).then(r => r.json());
@@ -115,7 +115,7 @@ export function SettingsPage() {
     if (!newName.trim()) return;
     setUserMessage("");
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/user/update/name`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/user/update/name`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -139,7 +139,7 @@ export function SettingsPage() {
     if (!newMail.trim()) return;
     setUserMessage("");
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/user/update/mail`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/user/update/mail`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -160,7 +160,7 @@ export function SettingsPage() {
     if (!newPassword.trim()) return;
     setUserMessage("");
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/user/update/password`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/user/update/password`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -180,7 +180,7 @@ export function SettingsPage() {
   async function handleDeleteUser() {
     setShowDeleteUserConfirm(false);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/user/delete`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/user/delete`, {
         method: "DELETE",
         credentials: "include"
       }).then(r => r.json());
@@ -200,7 +200,7 @@ export function SettingsPage() {
     if (thumbId < 0) return;
     setThumbMessage("");
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/thumbnails/delete?thumbId=${thumbId}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/thumbnails/delete?thumbId=${thumbId}`, {
         method: "DELETE",
         credentials: "include"
       }).then(r => r.json());
@@ -218,7 +218,7 @@ export function SettingsPage() {
     if (thumbFileId < 0) return;
     setThumbMessage("");
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/thumbnails/deletebyfileid?fileId=${thumbFileId}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/thumbnails/deletebyfileid?fileId=${thumbFileId}`, {
         method: "DELETE",
         credentials: "include"
       }).then(r => r.json());
@@ -236,7 +236,7 @@ export function SettingsPage() {
     setThumbMessage("");
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/api/thumbnails/deleteall?deletion_options=${selectedDeletionOption}`,
+        `${process.env.REACT_APP_API_URL}/api/v1/thumbnails/deleteall?deletion_options=${selectedDeletionOption}`,
         {
           method: "DELETE",
           credentials: "include"

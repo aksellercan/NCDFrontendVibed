@@ -92,7 +92,7 @@ export function UploadZone({ folderId, showFolderSelector, onUploadComplete }: U
 
         try {
             const response = await axios.post(
-                `${process.env.REACT_APP_API_URL}/api/file/upload`,
+                `${process.env.REACT_APP_API_URL}/api/v1/file/upload`,
                 formData,
                 {
                     withCredentials: true,

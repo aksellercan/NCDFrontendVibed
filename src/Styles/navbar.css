@@ -31,6 +31,7 @@
   height: 60px;
   background-color: var(--navbar-bg);
   position: relative;
+  z-index: 1000;
 }
 
 .brand {

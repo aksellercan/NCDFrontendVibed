@@ -21,7 +21,7 @@ function buildScanOptionsUrl(depthOption: ScanDepthOption, thumbnailOption: Scan
 }
 
 export async function StartScan(folderId: number): Promise<ScanResponse> {
-  const url = `${process.env.REACT_APP_API_URL}/api/maintenance/scan?folderid=${folderId}`;
+  const url = `${process.env.REACT_APP_API_URL}/api/v2/maintenance/scan?folderid=${folderId}`;
   return await fetch(url, {
     method: 'POST',
     credentials: 'include',
@@ -39,7 +39,7 @@ export async function StartScanWithOptions(
   thumbnailOption: ScanThumbnailOption | null
 ): Promise<ScanResponse> {
   const scanOptions = buildScanOptionsUrl(depthOption, thumbnailOption);
-  const url = `${process.env.REACT_APP_API_URL}/api/maintenance/scan?folderid=${folderId}&scanOptions=${scanOptions}`;
+  const url = `${process.env.REACT_APP_API_URL}/api/v2/maintenance/scan?folderid=${folderId}&scanOptions=${scanOptions}`;
   return await fetch(url, {
     method: 'POST',
     credentials: 'include',
