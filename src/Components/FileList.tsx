@@ -418,6 +418,43 @@ export function FileList() {
     }
   }
 
+  function getPreviewableFiles() {
+    return files.filter(f => isPreviewable(f.name));
+  }
+
+  function openPreviewFile(file: FileItemDTO) {
+    const previewables = getPreviewableFiles();
+    const index = previewables.findIndex(f => f.id === file.id);
+    setPreviewFile({
+      ...file,
+      hasNext: () => index >= 0 && index < previewables.length - 1,
+      hasPrevious: () => index > 0,
+    });
+  }
+
+  function handleNextPreview() {
+    if (!previewFile) return;
+    const previewables = getPreviewableFiles();
+    const index = previewables.findIndex(f => f.id === previewFile.id);
+    if (index >= 0 && index < previewables.length - 1) {
+      openPreviewFile(previewables[index + 1]);
+    }
+  }
+
+  function handlePreviousPreview() {
+    if (!previewFile) return;
+    const previewables = getPreviewableFiles();
+    const index = previewables.findIndex(f => f.id === previewFile.id);
+    if (index > 0) {
+      openPreviewFile(previewables[index - 1]);
+    }
+  }
+
+  const previewableFileList = getPreviewableFiles();
+  const previewIndex = previewFile ? previewableFileList.findIndex(f => f.id === previewFile.id) : -1;
+  const hasNextPreview = previewIndex >= 0 && previewIndex < previewableFileList.length - 1;
+  const hasPreviousPreview = previewIndex > 0;
+
   async function handleMoveHere() {
     if (selectedCount === 0) return;
     setMessage("Moving...");
@@ -657,7 +694,7 @@ export function FileList() {
                     : no_thumbnail_file
                   }
                   alt="file"
-                  onClick={() => isPreviewable(f.name) ? setPreviewFile(f) : downloadFile(f.id, f.name)}
+                  onClick={() => isPreviewable(f.name) ? openPreviewFile(f) : downloadFile(f.id, f.name)}
                 />
                 {renamingItem && renamingItem.type === 'file' && renamingItem.id === f.id ? (
                   <input
@@ -670,7 +707,7 @@ export function FileList() {
                     onClick={e => e.stopPropagation()}
                   />
                 ) : (
-                  <p onClick={() => isPreviewable(f.name) ? setPreviewFile(f) : downloadFile(f.id, f.name)}>{f.name}</p>
+                  <p onClick={() => isPreviewable(f.name) ? openPreviewFile(f) : downloadFile(f.id, f.name)}>{f.name}</p>
                 )}
               </div>
             ))}
@@ -703,13 +740,17 @@ export function FileList() {
           fileId={previewFile.id}
           fileName={previewFile.name}
           marked={previewFile.marked}
+          hasNext={hasNextPreview}
+          hasPrevious={hasPreviousPreview}
           onClose={() => setPreviewFile(null)}
           onDeleted={() => { setPreviewFile(null); loadData(folderId, sortType, filterType); }}
           onRenamed={() => { setPreviewFile(null); loadData(folderId, sortType, filterType); }}
           onMarkedChange={(marked) => {
-            setPreviewFile(prev => (prev ? { ...prev, marked } : null));
+            setPreviewFile(prev => (prev ? { ...prev, marked, hasNext: prev.hasNext, hasPrevious: prev.hasPrevious } : null));
             setFiles(prev => prev.map(f => f.id === previewFile.id ? { ...f, marked } : f));
           }}
+          onNext={handleNextPreview}
+          onPrevious={handlePreviousPreview}
         />
       )}
     </div>

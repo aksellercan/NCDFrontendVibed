@@ -201,6 +201,43 @@ export function Recents() {
     }).catch(e => console.error(e));
   }
 
+  function getPreviewableFiles() {
+    return files.filter(f => isPreviewable(f.name));
+  }
+
+  function openPreviewFile(file: FileItemDTO) {
+    const previewables = getPreviewableFiles();
+    const index = previewables.findIndex(f => f.id === file.id);
+    setPreviewFile({
+      ...file,
+      hasNext: () => index >= 0 && index < previewables.length - 1,
+      hasPrevious: () => index > 0,
+    });
+  }
+
+  function handleNextPreview() {
+    if (!previewFile) return;
+    const previewables = getPreviewableFiles();
+    const index = previewables.findIndex(f => f.id === previewFile.id);
+    if (index >= 0 && index < previewables.length - 1) {
+      openPreviewFile(previewables[index + 1]);
+    }
+  }
+
+  function handlePreviousPreview() {
+    if (!previewFile) return;
+    const previewables = getPreviewableFiles();
+    const index = previewables.findIndex(f => f.id === previewFile.id);
+    if (index > 0) {
+      openPreviewFile(previewables[index - 1]);
+    }
+  }
+
+  const previewableFileList = getPreviewableFiles();
+  const previewIndex = previewFile ? previewableFileList.findIndex(f => f.id === previewFile.id) : -1;
+  const hasNextPreview = previewIndex >= 0 && previewIndex < previewableFileList.length - 1;
+  const hasPreviousPreview = previewIndex > 0;
+
   const currentList = mode === "FOLDERS" ? folders : files;
   const currentHasMore = mode === "FOLDERS" ? foldersHasMore : filesHasMore;
   const isEmpty = !loading && currentList.length === 0 && !currentHasMore;
@@ -271,9 +308,9 @@ export function Recents() {
                       : no_thumbnail_file
                     }
                     alt="file"
-                    onClick={() => isPreviewable(f.name) ? setPreviewFile(f) : downloadFile(f.id, f.name)}
+                    onClick={() => isPreviewable(f.name) ? openPreviewFile(f) : downloadFile(f.id, f.name)}
                   />
-                  <p onClick={() => isPreviewable(f.name) ? setPreviewFile(f) : downloadFile(f.id, f.name)}>{f.name}</p>
+                  <p onClick={() => isPreviewable(f.name) ? openPreviewFile(f) : downloadFile(f.id, f.name)}>{f.name}</p>
                 </div>
               ))}
             </div>
@@ -287,14 +324,18 @@ export function Recents() {
           fileId={previewFile.id}
           fileName={previewFile.name}
           marked={previewFile.marked}
+          hasNext={hasNextPreview}
+          hasPrevious={hasPreviousPreview}
           onClose={() => setPreviewFile(null)}
           onDeleted={() => { setPreviewFile(null); resetAndReload(); }}
           onRenamed={() => { setPreviewFile(null); resetAndReload(); }}
           onGoToFolder={() => goToFileFolder(previewFile.id)}
           onMarkedChange={(marked) => {
-            setPreviewFile(prev => (prev ? { ...prev, marked } : null));
+            setPreviewFile(prev => (prev ? { ...prev, marked, hasNext: prev.hasNext, hasPrevious: prev.hasPrevious } : null));
             setFiles(prev => prev.map(f => f.id === previewFile.id ? { ...f, marked } : f));
           }}
+          onNext={handleNextPreview}
+          onPrevious={handlePreviousPreview}
         />
       )}
     </div>

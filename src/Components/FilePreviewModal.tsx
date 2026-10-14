@@ -19,24 +19,32 @@ interface FilePreviewModalProps {
   fileId: number;
   fileName: string;
   marked?: boolean;
+  hasNext?: boolean;
+  hasPrevious?: boolean;
   onClose: () => void;
   onDeleted: () => void;
   onRenamed: () => void;
   onGoToFolder?: () => void;
   onUnmarked?: () => void;
   onMarkedChange?: (marked: boolean) => void;
+  onNext?: () => void;
+  onPrevious?: () => void;
 }
 
 export function FilePreviewModal({
   fileId,
   fileName,
   marked: initialMarked,
+  hasNext,
+  hasPrevious,
   onClose,
   onDeleted,
   onRenamed,
   onGoToFolder,
   onUnmarked,
-  onMarkedChange
+  onMarkedChange,
+  onNext,
+  onPrevious
 }: FilePreviewModalProps) {
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(fileName);
@@ -149,6 +157,8 @@ export function FilePreviewModal({
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Escape") onClose();
+    if (e.key === "ArrowRight" && hasNext && onNext) onNext();
+    if (e.key === "ArrowLeft" && hasPrevious && onPrevious) onPrevious();
   }
 
   async function confirmRename() {
@@ -217,6 +227,24 @@ export function FilePreviewModal({
 
   return (
     <div className="preview-overlay" onClick={handleOverlayClick} onKeyDown={handleKeyDown} tabIndex={0}>
+      {hasPrevious && (
+        <button
+          className="preview-nav-btn preview-nav-prev"
+          onClick={(e) => { e.stopPropagation(); onPrevious?.(); }}
+          aria-label="Previous photo"
+        >
+          ‹
+        </button>
+      )}
+      {hasNext && (
+        <button
+          className="preview-nav-btn preview-nav-next"
+          onClick={(e) => { e.stopPropagation(); onNext?.(); }}
+          aria-label="Next photo"
+        >
+          ›
+        </button>
+      )}
       <div className="preview-modal">
         <button className="preview-close" onClick={onClose}>✕</button>
         <div className="preview-content-container">

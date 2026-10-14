@@ -80,6 +80,43 @@ export function Marked() {
     navigate("/");
   }
 
+  function getPreviewableFiles() {
+    return (mode === "FOLDERS" ? [] : files).filter(f => isPreviewable(f.name));
+  }
+
+  function openPreviewFile(file: FileItemDTO) {
+    const previewables = getPreviewableFiles();
+    const index = previewables.findIndex(f => f.id === file.id);
+    setPreviewFile({
+      ...file,
+      hasNext: () => index >= 0 && index < previewables.length - 1,
+      hasPrevious: () => index > 0,
+    });
+  }
+
+  function handleNextPreview() {
+    if (!previewFile) return;
+    const previewables = getPreviewableFiles();
+    const index = previewables.findIndex(f => f.id === previewFile.id);
+    if (index >= 0 && index < previewables.length - 1) {
+      openPreviewFile(previewables[index + 1]);
+    }
+  }
+
+  function handlePreviousPreview() {
+    if (!previewFile) return;
+    const previewables = getPreviewableFiles();
+    const index = previewables.findIndex(f => f.id === previewFile.id);
+    if (index > 0) {
+      openPreviewFile(previewables[index - 1]);
+    }
+  }
+
+  const previewableFileList = getPreviewableFiles();
+  const previewIndex = previewFile ? previewableFileList.findIndex(f => f.id === previewFile.id) : -1;
+  const hasNextPreview = previewIndex >= 0 && previewIndex < previewableFileList.length - 1;
+  const hasPreviousPreview = previewIndex > 0;
+
   const currentList = mode === "FOLDERS" ? folders : files;
   const isEmpty = !loading && currentList.length === 0;
 
@@ -161,9 +198,9 @@ export function Marked() {
                   : no_thumbnail_file
                 }
                 alt="file"
-                onClick={() => isPreviewable(f.name) ? setPreviewFile(f) : downloadFile(f.id, f.name)}
+                onClick={() => isPreviewable(f.name) ? openPreviewFile(f) : downloadFile(f.id, f.name)}
               />
-              <p onClick={() => isPreviewable(f.name) ? setPreviewFile(f) : downloadFile(f.id, f.name)}>{f.name}</p>
+              <p onClick={() => isPreviewable(f.name) ? openPreviewFile(f) : downloadFile(f.id, f.name)}>{f.name}</p>
             </div>
           ))}
         </div>
@@ -174,10 +211,14 @@ export function Marked() {
           fileId={previewFile.id}
           fileName={previewFile.name}
           marked={previewFile.marked ?? true}
+          hasNext={hasNextPreview}
+          hasPrevious={hasPreviousPreview}
           onClose={() => setPreviewFile(null)}
           onDeleted={() => { setPreviewFile(null); loadMarked(); }}
           onRenamed={() => { setPreviewFile(null); loadMarked(); }}
           onUnmarked={() => { setPreviewFile(null); loadMarked(); }}
+          onNext={handleNextPreview}
+          onPrevious={handlePreviousPreview}
         />
       )}
     </div>

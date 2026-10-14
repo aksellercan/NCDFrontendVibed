@@ -7,6 +7,8 @@ export interface FileItemDTO {
   createdAt: string;
   lastAccessedAt: string | null;
   marked?: boolean;
+  hasNext?: () => boolean;
+  hasPrevious?: () => boolean;
 }
 
 export interface FolderItemDTO {
