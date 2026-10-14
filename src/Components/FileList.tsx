@@ -694,7 +694,7 @@ export function FileList() {
                     : no_thumbnail_file
                   }
                   alt="file"
-                  onClick={() => isPreviewable(f.name) ? openPreviewFile(f) : downloadFile(f.id, f.name)}
+                  onClick={() => isPreviewable(f.name) ? openPreviewFile(f) : downloadFile(f.id)}
                 />
                 {renamingItem && renamingItem.type === 'file' && renamingItem.id === f.id ? (
                   <input
@@ -707,7 +707,7 @@ export function FileList() {
                     onClick={e => e.stopPropagation()}
                   />
                 ) : (
-                  <p onClick={() => isPreviewable(f.name) ? openPreviewFile(f) : downloadFile(f.id, f.name)}>{f.name}</p>
+                  <p onClick={() => isPreviewable(f.name) ? openPreviewFile(f) : downloadFile(f.id)}>{f.name}</p>
                 )}
               </div>
             ))}

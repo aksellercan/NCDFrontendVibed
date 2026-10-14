@@ -270,7 +270,7 @@ export function FilePreviewModal({
         </div>
         <p className="preview-filename">{fileName}</p>
         <div className="preview-actions">
-          <button className="preview-btn preview-download-btn" onClick={() => downloadFile(fileId, fileName)}>
+          <button className="preview-btn preview-download-btn" onClick={() => downloadFile(fileId)}>
             Download
           </button>
           {onGoToFolder && (
