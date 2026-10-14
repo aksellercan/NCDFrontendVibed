@@ -58,10 +58,11 @@ export function FilePreviewModal({
 
   const [mediaUrl, setMediaUrl] = useState("");
   const [loadingMedia, setLoadingMedia] = useState(isImage);
+  const [mediaProgress, setMediaProgress] = useState<number | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
 
   const mediaRef = useRef<HTMLImageElement | HTMLVideoElement | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  const xhrRef = useRef<XMLHttpRequest | null>(null);
   const objectUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -77,13 +78,14 @@ export function FilePreviewModal({
     // Reset per-file state.
     setMediaError(null);
     setMediaUrl("");
+    setMediaProgress(null);
     if (objectUrlRef.current) {
       URL.revokeObjectURL(objectUrlRef.current);
       objectUrlRef.current = null;
     }
-    if (abortRef.current) {
-      abortRef.current.abort();
-      abortRef.current = null;
+    if (xhrRef.current) {
+      xhrRef.current.abort();
+      xhrRef.current = null;
     }
 
     const downloadUrl = `${process.env.REACT_APP_API_URL}/api/v1/file/download?fileid=${fileId}`;
@@ -97,44 +99,60 @@ export function FilePreviewModal({
 
     // Images are fetched into a blob URL so loading can be aborted when the
     // viewer is closed, and so the browser does not keep a cached copy.
-    const controller = new AbortController();
-    abortRef.current = controller;
-    setLoadingMedia(true);
+    const xhr = new XMLHttpRequest();
+    xhrRef.current = xhr;
+    xhr.open("GET", `${downloadUrl}&_=${Date.now()}`);
+    xhr.withCredentials = true;
+    xhr.responseType = "blob";
 
     let cancelled = false;
-    (async () => {
-      try {
-        const response = await fetch(downloadUrl, {
-          credentials: "include",
-          signal: controller.signal,
-          cache: "no-store"
-        });
-        if (!response.ok) throw new Error(`Load failed with status ${response.status}`);
-        const blob = await response.blob();
-        if (cancelled || controller.signal.aborted) return;
-        const url = URL.createObjectURL(blob);
-        objectUrlRef.current = url;
-        setMediaUrl(url);
-        setMediaError(null);
-      } catch (e) {
-        if (controller.signal.aborted || cancelled) return;
-        console.error(e);
-        setMediaError("Could not load file");
-      } finally {
-        if (!cancelled && !controller.signal.aborted) {
-          setLoadingMedia(false);
-        }
+    setLoadingMedia(true);
+    setMediaProgress(0);
+
+    xhr.onprogress = (event) => {
+      if (cancelled) return;
+      if (event.lengthComputable && event.total > 0) {
+        setMediaProgress(Math.round((event.loaded / event.total) * 100));
+      } else {
+        setMediaProgress(null);
       }
-    })();
+    };
+
+    xhr.onload = () => {
+      if (cancelled) return;
+      if (xhr.status < 200 || xhr.status >= 300) {
+        setMediaError("Could not load file");
+        setLoadingMedia(false);
+        return;
+      }
+      const blob = xhr.response as Blob;
+      const url = URL.createObjectURL(blob);
+      objectUrlRef.current = url;
+      setMediaUrl(url);
+      setMediaError(null);
+      setMediaProgress(100);
+      setLoadingMedia(false);
+    };
+
+    xhr.onerror = () => {
+      if (cancelled) return;
+      console.error("Could not load file");
+      setMediaError("Could not load file");
+      setLoadingMedia(false);
+    };
+
+    xhr.send();
 
     return () => {
       cancelled = true;
-      controller.abort();
+      xhr.abort();
+      xhrRef.current = null;
       if (objectUrlRef.current) {
         URL.revokeObjectURL(objectUrlRef.current);
         objectUrlRef.current = null;
       }
       setMediaUrl("");
+      setMediaProgress(null);
     };
   }, [fileId, isImage]);
 
@@ -143,7 +161,7 @@ export function FilePreviewModal({
     return () => {
       const media = mediaRef.current;
       if (media) media.src = "";
-      if (abortRef.current) abortRef.current.abort();
+      if (xhrRef.current) xhrRef.current.abort();
       if (objectUrlRef.current) {
         URL.revokeObjectURL(objectUrlRef.current);
         objectUrlRef.current = null;
@@ -249,7 +267,17 @@ export function FilePreviewModal({
         <button className="preview-close" onClick={onClose}>✕</button>
         <div className="preview-content-container">
           {loadingMedia ? (
-            <p className="preview-filename">Loading...</p>
+            <div className="preview-loading">
+              <p className="preview-filename">
+                {mediaProgress === null ? "Loading..." : `Loading... ${mediaProgress}%`}
+              </p>
+              <div className="preview-progress-track">
+                <div
+                  className={`preview-progress-fill ${mediaProgress === null ? "indeterminate" : ""}`}
+                  style={mediaProgress === null ? undefined : { width: `${mediaProgress}%` }}
+                />
+              </div>
+            </div>
           ) : mediaError ? (
             <p className="preview-filename">{mediaError}</p>
           ) : isVideo ? (
