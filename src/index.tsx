@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import "./index.css"
+import { loadUserProfile, applyUserProfile } from "./Functions/UserProfile";
 import App from './App';
 import { ThemeProvider } from './Context/ThemeContext';
 import reportWebVitals from './reportWebVitals';
@@ -9,6 +10,8 @@ const storedTheme = localStorage.getItem('theme');
 if (storedTheme) {
   document.body.setAttribute('data-theme', storedTheme);
 }
+
+applyUserProfile(loadUserProfile());
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement

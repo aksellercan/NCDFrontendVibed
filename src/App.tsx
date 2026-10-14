@@ -7,6 +7,8 @@ import { Layout } from "./Layout";
 import { Login } from "./Pages/Login";
 import { List } from "./Pages/List";
 import { SettingsPage } from "./Pages/SettingsPage";
+import { Recents } from "./Pages/Recents";
+import { Marked } from "./Pages/Marked";
 import { useEffect } from "react";
 import { FetchUserDetails } from "./Functions/FetchUserDetails";
 
@@ -32,6 +34,8 @@ function App() {
                     <Route path="/upload" element={<UploadPage />} />
                     <Route path="/logout" element={<Login />} />
                     <Route path = "/register" element={<Register />} />
+                    <Route path="/recents" element={<Recents />} />
+                    <Route path="/marked" element={<Marked />} />
                     <Route path="/settings" element={<SettingsPage />} />
                 </Route>
             </Routes>

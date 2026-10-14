@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { StartScan, StartScanWithOptions, ScanResponse, ScanDepthOption, ScanThumbnailOption } from '../Functions/StartScan';
 import { convertToNumber } from '../Functions/Numbers';
+import { CurrentUserDTO, DeletionOptions, UserProfile } from '../types';
+import { loadUserProfile, saveUserProfile, applyUserProfile } from '../Functions/UserProfile';
 import '../Styles/settings.css';
 
 const DEPTH_OPTIONS: ScanDepthOption[] = [
@@ -17,6 +19,8 @@ const THUMBNAIL_OPTIONS: ScanThumbnailOption[] = [
   'ONLY_THUMBNAILS',
 ];
 
+const DELETION_OPTIONS: DeletionOptions[] = ['NORMAL', 'NUCLEAR', 'ONLY_IO'];
+
 export function SettingsPage() {
   const [folderId, setFolderId] = useState(0);
   const [selectedDepth, setSelectedDepth] = useState<ScanDepthOption>('NORMAL');
@@ -24,6 +28,52 @@ export function SettingsPage() {
   const [scanResult, setScanResult] = useState<ScanResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [userInfo, setUserInfo] = useState<CurrentUserDTO | null>(null);
+  const [newName, setNewName] = useState("");
+  const [newMail, setNewMail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [userMessage, setUserMessage] = useState("");
+  const [showDeleteUserConfirm, setShowDeleteUserConfirm] = useState(false);
+
+  const [thumbId, setThumbId] = useState(0);
+  const [thumbFileId, setThumbFileId] = useState(0);
+  const [selectedDeletionOption, setSelectedDeletionOption] = useState<DeletionOptions>('NORMAL');
+  const [thumbMessage, setThumbMessage] = useState("");
+  const [userProfile, setUserProfile] = useState<UserProfile>(() => loadUserProfile());
+  useEffect(() => {
+    fetchUserInfo();
+  }, []);
+
+  useEffect(() => {
+    applyUserProfile(userProfile);
+  }, [userProfile]);
+
+  async function fetchUserInfo() {
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/user/info`, {
+        method: "GET",
+        credentials: "include"
+      }).then(r => r.json());
+      if (response && response.object) {
+        setUserInfo(response.object);
+        setNewName(response.object.name || "");
+        setNewMail(response.object.mail || "");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function handleAccentColorChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const nextProfile: UserProfile = {
+      ...userProfile,
+      appearance: { ...userProfile.appearance, accentColor: e.currentTarget.value }
+    };
+    setUserProfile(nextProfile);
+    saveUserProfile(nextProfile);
+    applyUserProfile(nextProfile);
+  }
 
   function handleFolderIdChange(e: React.ChangeEvent<HTMLInputElement>) {
     setFolderId(convertToNumber(e.currentTarget.value, 0));
@@ -73,6 +123,150 @@ export function SettingsPage() {
       setError('Scan failed. Please try again.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleUpdateName() {
+    if (!newName.trim()) return;
+    setUserMessage("");
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/user/update/name`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ update: newName.trim() })
+      }).then(r => r.json());
+      if (response.success !== false) {
+        setUserMessage("Name updated successfully");
+        if (response.object?.name) {
+          localStorage.setItem("user", response.object.name);
+        }
+        fetchUserInfo();
+      } else {
+        setUserMessage("Failed to update name");
+      }
+    } catch {
+      setUserMessage("Failed to update name");
+    }
+  }
+
+  async function handleUpdateMail() {
+    if (!newMail.trim()) return;
+    setUserMessage("");
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/user/update/mail`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ update: newMail.trim() })
+      }).then(r => r.json());
+      if (response.success !== false) {
+        setUserMessage("Email updated successfully");
+        fetchUserInfo();
+      } else {
+        setUserMessage("Failed to update email");
+      }
+    } catch {
+      setUserMessage("Failed to update email");
+    }
+  }
+
+  async function handleUpdatePassword() {
+    if (!newPassword.trim()) return;
+    setUserMessage("");
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/user/update/password`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ update: newPassword.trim() })
+      }).then(r => r.json());
+      if (response.success !== false) {
+        setUserMessage("Password updated successfully");
+        setNewPassword("");
+      } else {
+        setUserMessage("Failed to update password");
+      }
+    } catch {
+      setUserMessage("Failed to update password");
+    }
+  }
+
+  async function handleDeleteUser() {
+    setShowDeleteUserConfirm(false);
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/user/delete`, {
+        method: "DELETE",
+        credentials: "include"
+      }).then(r => r.json());
+      if (response.success !== false) {
+        localStorage.removeItem("user");
+        sessionStorage.removeItem("file_list");
+        window.location.reload();
+      } else {
+        setUserMessage("Failed to delete account");
+      }
+    } catch {
+      setUserMessage("Failed to delete account");
+    }
+  }
+
+  async function handleDeleteThumbnail() {
+    if (thumbId < 0) return;
+    setThumbMessage("");
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/thumbnails/delete?thumbId=${thumbId}`, {
+        method: "DELETE",
+        credentials: "include"
+      }).then(r => r.json());
+      if (response.success !== false) {
+        setThumbMessage("Thumbnail deleted successfully");
+      } else {
+        setThumbMessage("Failed to delete thumbnail");
+      }
+    } catch {
+      setThumbMessage("Failed to delete thumbnail");
+    }
+  }
+
+  async function handleDeleteThumbnailByFileId() {
+    if (thumbFileId < 0) return;
+    setThumbMessage("");
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/thumbnails/deletebyfileid?fileId=${thumbFileId}`, {
+        method: "DELETE",
+        credentials: "include"
+      }).then(r => r.json());
+      if (response.success !== false) {
+        setThumbMessage("Thumbnail deleted successfully");
+      } else {
+        setThumbMessage("Failed to delete thumbnail");
+      }
+    } catch {
+      setThumbMessage("Failed to delete thumbnail");
+    }
+  }
+
+  async function handleDeleteAllThumbnails() {
+    setThumbMessage("");
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/v1/thumbnails/deleteall?deletion_options=${selectedDeletionOption}`,
+        {
+          method: "DELETE",
+          credentials: "include"
+        }
+      ).then(r => r.json());
+      if (response.success !== false) {
+        const results = response.object;
+        setThumbMessage(
+          `Delete all complete: ${results.deletedThumbnails || 'N/A'} deleted`
+        );
+      } else {
+        setThumbMessage("Failed to delete all thumbnails");
+      }
+    } catch {
+      setThumbMessage("Failed to delete all thumbnails");
     }
   }
 
@@ -163,6 +357,170 @@ export function SettingsPage() {
             <p><strong>Discovered:</strong> {scanResult.object.discoveredFiles} files, {scanResult.object.discoveredFolders} folders</p>
             <p><strong>Created:</strong> {scanResult.object.createdFiles} files, {scanResult.object.createdFolders} folders</p>
             <p><strong>Time taken:</strong> {scanResult.object.timeTaken} ms</p>
+          </div>
+        </div>
+      )}
+
+      <div className="settings-section">
+        <h2 className="settings-subtitle">User Profile</h2>
+
+        {userInfo && (
+          <div className="user-info-display">
+            <p><strong>Name:</strong> {userInfo.name}</p>
+            <p><strong>Email:</strong> {userInfo.mail}</p>
+            <p><strong>Role:</strong> {userInfo.role}</p>
+            <p><strong>Last Login:</strong> {userInfo.lastLogin}</p>
+          </div>
+        )}
+
+        <div className="user-update-form">
+          <label className="settings-label">Update Name</label>
+          <div className="update-row">
+            <input
+              type="text"
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              className="settings-input"
+              placeholder="Enter new name"
+            />
+            <button onClick={handleUpdateName} className="settings-button">Save Name</button>
+          </div>
+        </div>
+
+        <div className="user-update-form">
+          <label className="settings-label">Update Email</label>
+          <div className="update-row">
+            <input
+              type="email"
+              value={newMail}
+              onChange={e => setNewMail(e.target.value)}
+              className="settings-input"
+              placeholder="Enter new email"
+            />
+            <button onClick={handleUpdateMail} className="settings-button">Save Email</button>
+          </div>
+        </div>
+
+        <div className="user-update-form">
+          <label className="settings-label">Update Password</label>
+          <div className="update-row">
+            <input
+              type="password"
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+              className="settings-input"
+              placeholder="Enter new password"
+            />
+            <button onClick={handleUpdatePassword} className="settings-button">Save Password</button>
+          </div>
+        </div>
+
+        {userMessage && (
+          <div className="settings-message">{userMessage}</div>
+        )}
+
+        <div className="user-delete-section">
+          <button
+            onClick={() => setShowDeleteUserConfirm(true)}
+            className="settings-button danger-btn"
+          >
+            Delete Account
+          </button>
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <h2 className="settings-subtitle">Appearance</h2>
+        <div className="thumbnail-controls">
+          <div className="thumbnail-control-row">
+            <label className="settings-label" htmlFor="accent-color">Main accent color</label>
+            <div className="update-row">
+              <input
+                id="accent-color"
+                type="color"
+                value={userProfile.appearance.accentColor}
+                onChange={handleAccentColorChange}
+                className="settings-input"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <h2 className="settings-subtitle">Thumbnail Management</h2>
+
+        <div className="thumbnail-controls">
+          <div className="thumbnail-control-row">
+            <label className="settings-label">Delete by Thumbnail ID</label>
+            <div className="update-row">
+              <input
+                type="number"
+                min={0}
+                value={thumbId}
+                onChange={e => setThumbId(convertToNumber(e.currentTarget.value, 0))}
+                className="settings-input"
+                placeholder="Thumbnail ID"
+              />
+              <button onClick={handleDeleteThumbnail} className="settings-button">Delete</button>
+            </div>
+          </div>
+
+          <div className="thumbnail-control-row">
+            <label className="settings-label">Delete by File ID</label>
+            <div className="update-row">
+              <input
+                type="number"
+                min={0}
+                value={thumbFileId}
+                onChange={e => setThumbFileId(convertToNumber(e.currentTarget.value, 0))}
+                className="settings-input"
+                placeholder="File ID"
+              />
+              <button onClick={handleDeleteThumbnailByFileId} className="settings-button">Delete</button>
+            </div>
+          </div>
+
+          <div className="thumbnail-control-row">
+            <label className="settings-label">Delete All Thumbnails</label>
+            <div className="deletion-options-row">
+              {DELETION_OPTIONS.map(option => (
+                <label key={option} className="radio-option">
+                  <input
+                    type="radio"
+                    name="deletionOption"
+                    value={option}
+                    checked={selectedDeletionOption === option}
+                    onChange={() => setSelectedDeletionOption(option)}
+                  />
+                  <span>{option.replace(/_/g, ' ')}</span>
+                </label>
+              ))}
+            </div>
+            <button onClick={handleDeleteAllThumbnails} className="settings-button primary" style={{ marginTop: 8 }}>
+              Delete All
+            </button>
+          </div>
+        </div>
+
+        {thumbMessage && (
+          <div className="settings-message">{thumbMessage}</div>
+        )}
+      </div>
+
+      {showDeleteUserConfirm && (
+        <div className="modal-overlay" onClick={() => setShowDeleteUserConfirm(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h3>Confirm Account Deletion</h3>
+            <p>Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently removed.</p>
+            <div className="modal-actions">
+              <button className="modal-btn confirm-delete-btn" onClick={handleDeleteUser}>
+                Yes, Delete My Account
+              </button>
+              <button className="modal-btn cancel-modal-btn" onClick={() => setShowDeleteUserConfirm(false)}>
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

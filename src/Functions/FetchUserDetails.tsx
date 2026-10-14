@@ -1,6 +1,6 @@
 export const FetchUserDetails = async () => {
     await fetch(
-        `${process.env.REACT_APP_API_URL}/api/user/info`,
+        `${process.env.REACT_APP_API_URL}/api/v1/user/info`,
         {
             method: "GET",
             credentials: "include",

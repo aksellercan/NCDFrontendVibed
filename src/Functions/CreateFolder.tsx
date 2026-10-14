@@ -20,7 +20,7 @@ export function CreateFolder({ currentFolderId }: CreateFolderCurrentFolderProps
         }
         const bodyJson = { folder_id: currentFolderId, name: folderName };
         const response = await fetch(
-            `${process.env.REACT_APP_API_URL}/api/file/create/folder`,
+            `${process.env.REACT_APP_API_URL}/api/v1/file/create/folder`,
             {
                 method: "POST",
                 credentials: "include",

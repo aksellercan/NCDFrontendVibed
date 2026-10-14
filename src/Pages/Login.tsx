@@ -24,6 +24,7 @@ export function Login() {
     }
 
     const login = async () => {
+        console.log(`state of remember me ${remember_me}`);
         await fetch(`${process.env.REACT_APP_API_URL}/login`, {
             method: "POST",
             body: new URLSearchParams({
@@ -78,7 +79,7 @@ export function Login() {
                         <div>
                             <label>
                                 Remember me on this computer:
-                                <input type="checkbox" name="remember-me" onChange={handleRememberMe} />
+                                <input type="checkbox" name="remember-me" onChange={handleRememberMe}/>
                             </label>
                         </div>
                     </form>

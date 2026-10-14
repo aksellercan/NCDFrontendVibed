@@ -31,6 +31,7 @@
   height: 60px;
   background-color: var(--navbar-bg);
   position: relative;
+  z-index: 1000;
 }
 
 .brand {
@@ -141,7 +142,7 @@
   right: 0;
   background-color: var(--navbar-bg);
   border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px var(--color-shadow-light);
   min-width: 120px;
   opacity: 0;
   visibility: hidden;
@@ -167,7 +168,7 @@
 }
 
 .dropdown-item:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--color-highlight);
   color: var(--nav-link-active-color);
 }
 
@@ -236,6 +237,6 @@
   }
 
   .nav-elements.active .dropdown-item:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: var(--color-highlight);
   }
 }

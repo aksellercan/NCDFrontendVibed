@@ -111,12 +111,756 @@
     text-overflow: ellipsis;
 }
 
+.file,
+.folder {
+    position: relative;
+}
+
+.item-checkbox {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 10;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--hover-bg);
+}
+
+.mark-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 10;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-color);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.45;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mark-btn:hover {
+    opacity: 0.9;
+    transform: scale(1.15);
+    background: var(--color-highlight-subtle);
+}
+
+.mark-btn.marked {
+    color: var(--color-mark);
+    opacity: 1;
+}
+
+.file.list-view .mark-btn,
+.folder.list-view .mark-btn {
+    position: static;
+    order: 3;
+    margin-left: auto;
+}
+
+.file.selected,
+.folder.selected {
+    outline: 2px solid var(--hover-bg);
+    outline-offset: -2px;
+    border-radius: 12px;
+}
+
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 12px 15px 4px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-color);
+}
+
+.collapse-btn {
+    padding: 4px 10px;
+    border: 2px solid var(--button-bg);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+    transition: all 0.2s;
+}
+
+.collapse-btn:hover {
+    background: linear-gradient(to bottom, var(--button-hover-start) 5%, var(--button-hover-end) 100%);
+    border-color: var(--button-hover-start);
+}
+
+.mode-switch {
+    display: flex;
+    gap: 0;
+    border: 2px solid var(--button-bg);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.mode-switch button {
+    padding: 6px 14px;
+    border: none;
+    background: transparent;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.mode-switch button:hover {
+    background: linear-gradient(to bottom, var(--button-hover-start) 5%, var(--button-hover-end) 100%);
+    color: white;
+}
+
+.mode-switch button.active {
+    background-color: var(--hover-bg);
+    color: white;
+}
+
+.loading-more {
+    text-align: center;
+    padding: 16px 0;
+    color: var(--text-color);
+    opacity: 0.6;
+    font-size: 14px;
+}
+
+.select-mode-btn {
+    padding: 6px 14px;
+    border: 2px solid var(--button-bg);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.select-mode-btn.active {
+    background-color: var(--hover-bg);
+    color: white;
+    border-color: var(--hover-bg);
+}
+
+.select-mode-btn:hover {
+    background: linear-gradient(to bottom, var(--button-hover-start) 5%, var(--button-hover-end) 100%);
+    border-color: var(--button-hover-start);
+}
+
+.action-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 15px;
+    margin: 8px 0;
+    border-radius: 8px;
+    background-color: var(--file-card-bg);
+}
+
+.action-bar-info {
+    font-weight: 600;
+    font-size: 14px;
+    margin-right: 8px;
+    color: var(--text-color);
+}
+
+.action-btn {
+    padding: 6px 14px;
+    border: 2px solid var(--button-bg);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.action-btn:hover {
+    background: linear-gradient(to bottom, var(--button-hover-start) 5%, var(--button-hover-end) 100%);
+    border-color: var(--button-hover-start);
+}
+
+.delete-btn {
+    border-color: var(--color-danger);
+    color: var(--color-danger);
+}
+
+.delete-btn:hover {
+    background: linear-gradient(to bottom, var(--color-danger) 5%, var(--color-danger-dark) 100%);
+    border-color: var(--color-danger);
+    color: white;
+}
+
+.move-btn {
+    border-color: var(--color-success);
+    color: var(--color-success);
+}
+
+.move-btn:hover {
+    background: linear-gradient(to bottom, var(--color-success) 5%, var(--color-success-dark) 100%);
+    border-color: var(--color-success);
+    color: white;
+}
+
+.cancel-selection-btn {
+    border-color: var(--color-cancel);
+    color: var(--color-cancel);
+}
+
+.cancel-selection-btn:hover {
+    background: linear-gradient(to bottom, var(--color-cancel) 5%, var(--color-cancel-dark) 100%);
+    border-color: var(--color-cancel);
+    color: white;
+}
+
+.rename-input {
+    width: 90%;
+    padding: 4px 6px;
+    border: 2px solid var(--hover-bg);
+    border-radius: 4px;
+    font-size: small;
+    text-align: center;
+    background-color: var(--input-bg);
+    color: var(--input-text);
+    outline: none;
+    box-sizing: border-box;
+}
+
+.list-message {
+    padding: 6px 12px;
+    margin: 4px 0;
+    border-radius: 6px;
+    font-size: 14px;
+    text-align: center;
+    background-color: var(--file-card-bg);
+    color: var(--text-color);
+}
+
+.empty-folder {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-color);
+    opacity: 0.6;
+    font-size: 16px;
+}
+
+.nav-btn {
+    padding: 6px 14px;
+    border: 2px solid var(--button-bg);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.nav-btn:hover:not(:disabled) {
+    background: linear-gradient(to bottom, var(--button-hover-start) 5%, var(--button-hover-end) 100%);
+    border-color: var(--button-hover-start);
+}
+
+.nav-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.breadcrumb-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 8px 0;
+    font-size: 14px;
+}
+
+.breadcrumb-link {
+    cursor: pointer;
+    color: var(--hover-bg);
+    transition: opacity 0.2s;
+}
+
+.breadcrumb-link:hover {
+    text-decoration: underline;
+    opacity: 0.8;
+}
+
+.breadcrumb-current {
+    font-weight: 600;
+}
+
+.breadcrumb-separator {
+    margin: 0 6px;
+    opacity: 0.5;
+}
+
+.add-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--button-bg);
+    background: transparent;
+    color: var(--text-color);
+    font-size: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.add-btn:hover {
+    background: linear-gradient(to bottom, var(--button-hover-start) 5%, var(--button-hover-end) 100%);
+    border-color: var(--button-hover-start);
+}
+
+.menu-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.menu-container {
+    position: relative;
+}
+
+.options-btn {
+    font-size: 18px;
+    font-weight: bold;
+    padding-bottom: 2px;
+}
+
+.popup-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 240px;
+    background-color: var(--file-card-bg);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 8px 32px var(--color-overlay-soft);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.popup-btn {
+    width: 100%;
+}
+
+.popup-label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+    color: var(--text-color);
+}
+
+.popup-label select {
+    width: 100%;
+    padding: 6px 8px;
+    border: 2px solid var(--input-border, var(--color-neutral));
+    border-radius: 6px;
+    background-color: var(--input-bg);
+    color: var(--input-text);
+    font-size: 13px;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--color-overlay-strong);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal {
+    background-color: var(--file-card-bg);
+    border-radius: 12px;
+    padding: 24px;
+    min-width: 300px;
+    max-width: 450px;
+    box-shadow: 0 8px 32px var(--color-overlay-soft);
+}
+
+.modal h3 {
+    margin: 0 0 12px 0;
+    color: var(--text-color);
+}
+
+.modal p {
+    margin: 0 0 20px 0;
+    color: var(--text-color);
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.modal-btn {
+    padding: 8px 20px;
+    border: 2px solid var(--button-bg);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.modal-btn:hover {
+    background: linear-gradient(to bottom, var(--button-hover-start) 5%, var(--button-hover-end) 100%);
+    border-color: var(--button-hover-start);
+}
+
+.confirm-delete-btn {
+    border-color: var(--color-danger);
+    color: var(--color-danger);
+}
+
+.confirm-delete-btn:hover {
+    background: linear-gradient(to bottom, var(--color-danger) 5%, var(--color-danger-dark) 100%);
+    border-color: var(--color-danger);
+    color: white;
+}
+
+.cancel-modal-btn {
+    border-color: var(--color-cancel);
+    color: var(--color-cancel);
+}
+
+.cancel-modal-btn:hover {
+    background: linear-gradient(to bottom, var(--color-cancel) 5%, var(--color-cancel-dark) 100%);
+    border-color: var(--color-cancel);
+    color: white;
+}
+
+.preview-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--color-overlay-scrim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1001;
+}
+
+.preview-modal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 90vw;
+    max-height: 90vh;
+    position: relative;
+}
+
+.preview-close {
+    position: absolute;
+    top: -40px;
+    right: -10px;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    z-index: 1002;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.preview-close:hover {
+    background-color: var(--color-highlight-strong);
+}
+
+.preview-content-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 80vw;
+    max-height: 70vh;
+    overflow: hidden;
+}
+
+.preview-image {
+    max-width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.preview-video {
+    max-width: 100%;
+    max-height: 70vh;
+    border-radius: 8px;
+    outline: none;
+}
+
+.preview-filename {
+    color: white;
+    margin: 12px 0 8px;
+    font-size: 14px;
+    text-align: center;
+    max-width: 80vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.preview-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.preview-btn {
+    padding: 8px 18px;
+    border: 2px solid var(--button-bg);
+    border-radius: 6px;
+    background: transparent;
+    color: white;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.preview-btn:hover {
+    background: linear-gradient(to bottom, var(--button-hover-start) 5%, var(--button-hover-end) 100%);
+    border-color: var(--button-hover-start);
+}
+
+.preview-download-btn {
+    border-color: var(--color-info);
+    color: var(--color-info);
+}
+
+.preview-download-btn:hover {
+    background: linear-gradient(to bottom, var(--color-info) 5%, var(--color-info-dark) 100%);
+    border-color: var(--color-info);
+    color: white;
+}
+
+.preview-rename-btn {
+    border-color: var(--color-warning);
+    color: var(--color-warning);
+}
+
+.preview-rename-btn:hover {
+    background: linear-gradient(to bottom, var(--color-warning) 5%, var(--color-warning-dark) 100%);
+    border-color: var(--color-warning);
+    color: white;
+}
+
+.preview-folder-btn {
+    border-color: var(--color-success);
+    color: var(--color-success);
+}
+
+.preview-folder-btn:hover {
+    background: linear-gradient(to bottom, var(--color-success) 5%, var(--color-success-dark) 100%);
+    border-color: var(--color-success);
+    color: white;
+}
+
+.preview-mark-btn {
+    border-color: var(--color-mark);
+    color: var(--color-mark);
+}
+
+.preview-mark-btn:hover {
+    background: linear-gradient(to bottom, var(--color-mark) 5%, var(--color-mark-dark) 100%);
+    border-color: var(--color-mark);
+    color: white;
+}
+
+.preview-delete-btn {
+    border-color: var(--color-danger);
+    color: var(--color-danger);
+}
+
+.preview-delete-btn:hover {
+    background: linear-gradient(to bottom, var(--color-danger) 5%, var(--color-danger-dark) 100%);
+    border-color: var(--color-danger);
+    color: white;
+}
+
+.preview-cancel-btn {
+    border-color: var(--color-cancel);
+    color: var(--color-cancel);
+}
+
+.preview-cancel-btn:hover {
+    background: linear-gradient(to bottom, var(--color-cancel) 5%, var(--color-cancel-dark) 100%);
+    border-color: var(--color-cancel);
+    color: white;
+}
+
+.preview-nav-btn {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1003;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 2px solid var(--color-highlight-subtle);
+    background: var(--color-overlay-light);
+    color: white;
+    font-size: 34px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.preview-nav-btn:hover {
+    background: var(--color-overlay-scrim);
+    transform: translateY(-50%) scale(1.08);
+}
+
+.preview-nav-prev {
+    left: 16px;
+}
+
+.preview-nav-next {
+    right: 16px;
+}
+
+.preview-rename-inline {
+    display: flex;
+}
+
+.preview-rename-input {
+    padding: 6px 10px;
+    border: 2px solid var(--hover-bg);
+    border-radius: 6px;
+    font-size: 13px;
+    background-color: var(--input-bg);
+    color: var(--input-text);
+    outline: none;
+    width: 180px;
+}
+
+.preview-confirm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--color-overlay-dialog);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1003;
+}
+
+.preview-confirm-dialog {
+    background-color: var(--file-card-bg);
+    border-radius: 12px;
+    padding: 24px;
+    min-width: 280px;
+    max-width: 380px;
+    box-shadow: 0 8px 32px var(--color-shadow);
+    text-align: center;
+}
+
+.preview-confirm-dialog p {
+    margin: 0 0 16px;
+    color: var(--text-color);
+    font-size: 15px;
+}
+
+.preview-confirm-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
 @media (max-width: 768px) {
     .fileDiv,
     .folderDiv {
         grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
         gap: 10px;
         padding: 12px;
+    }
+
+    .action-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .action-btn {
+        text-align: center;
+    }
+
+    .menu-buttons {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        justify-content: flex-end;
+        gap: 12px;
+        padding: 10px;
+        background-color: var(--file-card-bg);
+        box-shadow: 0 -4px 16px var(--color-overlay-soft);
+    }
+
+    .menu-container .popup-menu {
+        top: auto;
+        bottom: calc(100% + 8px);
+        right: 0;
+        left: auto;
+        transform: none;
+        width: min(calc(100vw - 24px), 320px);
+        box-sizing: border-box;
+    }
+
+    .fileListDiv {
+        padding-bottom: 80px;
     }
 }
 
@@ -138,5 +882,20 @@
     .folder>img {
         max-width: 70px;
         max-height: 70px;
+    }
+
+    .action-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .action-btn {
+        text-align: center;
+    }
+
+    .modal {
+        min-width: auto;
+        width: 90%;
+        margin: 0 16px;
     }
 }

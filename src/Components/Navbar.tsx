@@ -62,6 +62,12 @@ export function Navbar() {
                             <NavLink to="/">Home</NavLink>
                         </li>
                         <li>
+                            <NavLink to="/recents">Recents</NavLink>
+                        </li>
+                        <li>
+                            <NavLink to="/marked">Marked</NavLink>
+                        </li>
+                        <li>
                             <NavLink to="/settings">Settings</NavLink>
                         </li>
                         <li>

@@ -24,7 +24,7 @@ export function Register() {
         console.log(`username ${mail} password ${password}`);
 
         const bodyJson = {name: username, mail: mail, password: password}
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/user/register`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/user/register`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
