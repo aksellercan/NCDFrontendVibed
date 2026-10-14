@@ -18,6 +18,40 @@
   --file-card-border: #cccccc;
   --hover-gradient-start: #5972a7;
   --hover-gradient-end: #637aad;
+  --hover-bg: #5972a7;
+
+  --color-mark: #f1c40f;
+  --color-mark-dark: #d4ac0d;
+  --color-danger: #e74c3c;
+  --color-danger-dark: #c0392b;
+  --color-danger-alt: #f44336;
+  --color-success: #2ecc71;
+  --color-success-dark: #27ae60;
+  --color-success-alt: #4caf50;
+  --color-info: #3498db;
+  --color-info-dark: #2980b9;
+  --color-warning: #f39c12;
+  --color-warning-dark: #e67e22;
+  --color-cancel: #95a5a6;
+  --color-cancel-dark: #7f8c8d;
+  --color-accent-light: #5a8fb8;
+  --color-accent-dark: #4a7fa8;
+  --color-neutral: #888888;
+  --color-border-neutral: #e0e0e0;
+  --color-muted: #7f8c8d;
+  --color-inverse-text: #ffffff;
+  --color-text-muted: rgba(255, 255, 255, 0.65);
+
+  --color-overlay-scrim: rgba(0, 0, 0, 0.85);
+  --color-overlay-dialog: rgba(0, 0, 0, 0.6);
+  --color-overlay-light: rgba(0, 0, 0, 0.45);
+  --color-overlay-soft: rgba(0, 0, 0, 0.3);
+  --color-overlay-strong: rgba(0, 0, 0, 0.5);
+  --color-shadow: rgba(0, 0, 0, 0.4);
+  --color-shadow-light: rgba(0, 0, 0, 0.15);
+  --color-highlight: rgba(255, 255, 255, 0.1);
+  --color-highlight-strong: rgba(255, 255, 255, 0.2);
+  --color-highlight-subtle: rgba(255, 255, 255, 0.5);
 }
 
 [data-theme="light"] {
@@ -40,6 +74,40 @@
   --file-card-border: #cccccc;
   --hover-gradient-start: #5972a7;
   --hover-gradient-end: #637aad;
+  --hover-bg: #5972a7;
+
+  --color-mark: #d4ac0d;
+  --color-mark-dark: #f1c40f;
+  --color-danger: #c0392b;
+  --color-danger-dark: #e74c3c;
+  --color-danger-alt: #d32f2f;
+  --color-success: #27ae60;
+  --color-success-dark: #2ecc71;
+  --color-success-alt: #388e3c;
+  --color-info: #2980b9;
+  --color-info-dark: #3498db;
+  --color-warning: #e67e22;
+  --color-warning-dark: #f39c12;
+  --color-cancel: #7f8c8d;
+  --color-cancel-dark: #95a5a6;
+  --color-accent-light: #4a7fa8;
+  --color-accent-dark: #5a8fb8;
+  --color-neutral: #666666;
+  --color-border-neutral: #888888;
+  --color-muted: #555555;
+  --color-inverse-text: #ffffff;
+  --color-text-muted: rgba(0, 0, 0, 0.65);
+
+  --color-overlay-scrim: rgba(0, 0, 0, 0.65);
+  --color-overlay-dialog: rgba(0, 0, 0, 0.35);
+  --color-overlay-light: rgba(0, 0, 0, 0.25);
+  --color-overlay-soft: rgba(0, 0, 0, 0.15);
+  --color-overlay-strong: rgba(0, 0, 0, 0.3);
+  --color-shadow: rgba(0, 0, 0, 0.15);
+  --color-shadow-light: rgba(0, 0, 0, 0.08);
+  --color-highlight: rgba(0, 0, 0, 0.06);
+  --color-highlight-strong: rgba(0, 0, 0, 0.12);
+  --color-highlight-subtle: rgba(0, 0, 0, 0.35);
 }
 
 body {

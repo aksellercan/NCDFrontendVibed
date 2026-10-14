@@ -30,18 +30,18 @@
 }
 
 .uploadProgress::-webkit-progress-bar {
-    background-color: #e0e0e0;
+    background-color: var(--color-border-neutral);
     border-radius: 6px;
 }
 
 .uploadProgress::-webkit-progress-value {
-    background-color: #4caf50;
+    background-color: var(--color-success-alt);
     border-radius: 6px;
     transition: width 0.2s ease;
 }
 
 .uploadProgress::-moz-progress-bar {
-    background-color: #4caf50;
+    background-color: var(--color-success-alt);
     border-radius: 6px;
 }
 

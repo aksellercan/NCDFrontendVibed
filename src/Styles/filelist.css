@@ -152,11 +152,11 @@
 .mark-btn:hover {
     opacity: 0.9;
     transform: scale(1.15);
-    background: rgba(128, 128, 128, 0.2);
+    background: var(--color-highlight-subtle);
 }
 
 .mark-btn.marked {
-    color: #f1c40f;
+    color: var(--color-mark);
     opacity: 1;
 }
 
@@ -303,35 +303,35 @@
 }
 
 .delete-btn {
-    border-color: #e74c3c;
-    color: #e74c3c;
+    border-color: var(--color-danger);
+    color: var(--color-danger);
 }
 
 .delete-btn:hover {
-    background: linear-gradient(to bottom, #e74c3c 5%, #c0392b 100%);
-    border-color: #e74c3c;
+    background: linear-gradient(to bottom, var(--color-danger) 5%, var(--color-danger-dark) 100%);
+    border-color: var(--color-danger);
     color: white;
 }
 
 .move-btn {
-    border-color: #2ecc71;
-    color: #2ecc71;
+    border-color: var(--color-success);
+    color: var(--color-success);
 }
 
 .move-btn:hover {
-    background: linear-gradient(to bottom, #2ecc71 5%, #27ae60 100%);
-    border-color: #2ecc71;
+    background: linear-gradient(to bottom, var(--color-success) 5%, var(--color-success-dark) 100%);
+    border-color: var(--color-success);
     color: white;
 }
 
 .cancel-selection-btn {
-    border-color: #95a5a6;
-    color: #95a5a6;
+    border-color: var(--color-cancel);
+    color: var(--color-cancel);
 }
 
 .cancel-selection-btn:hover {
-    background: linear-gradient(to bottom, #95a5a6 5%, #7f8c8d 100%);
-    border-color: #95a5a6;
+    background: linear-gradient(to bottom, var(--color-cancel) 5%, var(--color-cancel-dark) 100%);
+    border-color: var(--color-cancel);
     color: white;
 }
 
@@ -460,7 +460,7 @@
     background-color: var(--file-card-bg);
     border-radius: 12px;
     padding: 16px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 32px var(--color-overlay-soft);
     z-index: 100;
     display: flex;
     flex-direction: column;
@@ -482,7 +482,7 @@
 .popup-label select {
     width: 100%;
     padding: 6px 8px;
-    border: 2px solid var(--input-border, #666);
+    border: 2px solid var(--input-border, var(--color-neutral));
     border-radius: 6px;
     background-color: var(--input-bg);
     color: var(--input-text);
@@ -497,7 +497,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--color-overlay-strong);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -510,7 +510,7 @@
     padding: 24px;
     min-width: 300px;
     max-width: 450px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 32px var(--color-overlay-soft);
 }
 
 .modal h3 {
@@ -548,24 +548,24 @@
 }
 
 .confirm-delete-btn {
-    border-color: #e74c3c;
-    color: #e74c3c;
+    border-color: var(--color-danger);
+    color: var(--color-danger);
 }
 
 .confirm-delete-btn:hover {
-    background: linear-gradient(to bottom, #e74c3c 5%, #c0392b 100%);
-    border-color: #e74c3c;
+    background: linear-gradient(to bottom, var(--color-danger) 5%, var(--color-danger-dark) 100%);
+    border-color: var(--color-danger);
     color: white;
 }
 
 .cancel-modal-btn {
-    border-color: #95a5a6;
-    color: #95a5a6;
+    border-color: var(--color-cancel);
+    color: var(--color-cancel);
 }
 
 .cancel-modal-btn:hover {
-    background: linear-gradient(to bottom, #95a5a6 5%, #7f8c8d 100%);
-    border-color: #95a5a6;
+    background: linear-gradient(to bottom, var(--color-cancel) 5%, var(--color-cancel-dark) 100%);
+    border-color: var(--color-cancel);
     color: white;
 }
 
@@ -575,7 +575,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.85);
+    background: var(--color-overlay-scrim);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -611,7 +611,7 @@
 }
 
 .preview-close:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: var(--color-highlight-strong);
 }
 
 .preview-content-container {
@@ -671,68 +671,68 @@
 }
 
 .preview-download-btn {
-    border-color: #3498db;
-    color: #3498db;
+    border-color: var(--color-info);
+    color: var(--color-info);
 }
 
 .preview-download-btn:hover {
-    background: linear-gradient(to bottom, #3498db 5%, #2980b9 100%);
-    border-color: #3498db;
+    background: linear-gradient(to bottom, var(--color-info) 5%, var(--color-info-dark) 100%);
+    border-color: var(--color-info);
     color: white;
 }
 
 .preview-rename-btn {
-    border-color: #f39c12;
-    color: #f39c12;
+    border-color: var(--color-warning);
+    color: var(--color-warning);
 }
 
 .preview-rename-btn:hover {
-    background: linear-gradient(to bottom, #f39c12 5%, #e67e22 100%);
-    border-color: #f39c12;
+    background: linear-gradient(to bottom, var(--color-warning) 5%, var(--color-warning-dark) 100%);
+    border-color: var(--color-warning);
     color: white;
 }
 
 .preview-folder-btn {
-    border-color: #2ecc71;
-    color: #2ecc71;
+    border-color: var(--color-success);
+    color: var(--color-success);
 }
 
 .preview-folder-btn:hover {
-    background: linear-gradient(to bottom, #2ecc71 5%, #27ae60 100%);
-    border-color: #2ecc71;
+    background: linear-gradient(to bottom, var(--color-success) 5%, var(--color-success-dark) 100%);
+    border-color: var(--color-success);
     color: white;
 }
 
 .preview-mark-btn {
-    border-color: #f1c40f;
-    color: #f1c40f;
+    border-color: var(--color-mark);
+    color: var(--color-mark);
 }
 
 .preview-mark-btn:hover {
-    background: linear-gradient(to bottom, #f1c40f 5%, #d4ac0d 100%);
-    border-color: #f1c40f;
+    background: linear-gradient(to bottom, var(--color-mark) 5%, var(--color-mark-dark) 100%);
+    border-color: var(--color-mark);
     color: white;
 }
 
 .preview-delete-btn {
-    border-color: #e74c3c;
-    color: #e74c3c;
+    border-color: var(--color-danger);
+    color: var(--color-danger);
 }
 
 .preview-delete-btn:hover {
-    background: linear-gradient(to bottom, #e74c3c 5%, #c0392b 100%);
-    border-color: #e74c3c;
+    background: linear-gradient(to bottom, var(--color-danger) 5%, var(--color-danger-dark) 100%);
+    border-color: var(--color-danger);
     color: white;
 }
 
 .preview-cancel-btn {
-    border-color: #95a5a6;
-    color: #95a5a6;
+    border-color: var(--color-cancel);
+    color: var(--color-cancel);
 }
 
 .preview-cancel-btn:hover {
-    background: linear-gradient(to bottom, #95a5a6 5%, #7f8c8d 100%);
-    border-color: #95a5a6;
+    background: linear-gradient(to bottom, var(--color-cancel) 5%, var(--color-cancel-dark) 100%);
+    border-color: var(--color-cancel);
     color: white;
 }
 
@@ -744,8 +744,8 @@
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.5);
-    background: rgba(0, 0, 0, 0.45);
+    border: 2px solid var(--color-highlight-subtle);
+    background: var(--color-overlay-light);
     color: white;
     font-size: 34px;
     line-height: 1;
@@ -757,7 +757,7 @@
 }
 
 .preview-nav-btn:hover {
-    background: rgba(0, 0, 0, 0.75);
+    background: var(--color-overlay-scrim);
     transform: translateY(-50%) scale(1.08);
 }
 
@@ -790,7 +790,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--color-overlay-dialog);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -803,7 +803,7 @@
     padding: 24px;
     min-width: 280px;
     max-width: 380px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 8px 32px var(--color-shadow);
     text-align: center;
 }
 
@@ -846,7 +846,7 @@
         gap: 12px;
         padding: 10px;
         background-color: var(--file-card-bg);
-        box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 -4px 16px var(--color-overlay-soft);
     }
 
     .menu-container .popup-menu {
