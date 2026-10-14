@@ -286,10 +286,15 @@ export function Recents() {
         <FilePreviewModal
           fileId={previewFile.id}
           fileName={previewFile.name}
+          marked={previewFile.marked}
           onClose={() => setPreviewFile(null)}
           onDeleted={() => { setPreviewFile(null); resetAndReload(); }}
           onRenamed={() => { setPreviewFile(null); resetAndReload(); }}
           onGoToFolder={() => goToFileFolder(previewFile.id)}
+          onMarkedChange={(marked) => {
+            setPreviewFile(prev => (prev ? { ...prev, marked } : null));
+            setFiles(prev => prev.map(f => f.id === previewFile.id ? { ...f, marked } : f));
+          }}
         />
       )}
     </div>

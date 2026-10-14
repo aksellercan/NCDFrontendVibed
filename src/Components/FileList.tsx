@@ -702,9 +702,14 @@ export function FileList() {
         <FilePreviewModal
           fileId={previewFile.id}
           fileName={previewFile.name}
+          marked={previewFile.marked}
           onClose={() => setPreviewFile(null)}
           onDeleted={() => { setPreviewFile(null); loadData(folderId, sortType, filterType); }}
           onRenamed={() => { setPreviewFile(null); loadData(folderId, sortType, filterType); }}
+          onMarkedChange={(marked) => {
+            setPreviewFile(prev => (prev ? { ...prev, marked } : null));
+            setFiles(prev => prev.map(f => f.id === previewFile.id ? { ...f, marked } : f));
+          }}
         />
       )}
     </div>

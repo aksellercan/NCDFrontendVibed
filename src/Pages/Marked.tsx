@@ -173,6 +173,7 @@ export function Marked() {
         <FilePreviewModal
           fileId={previewFile.id}
           fileName={previewFile.name}
+          marked={previewFile.marked ?? true}
           onClose={() => setPreviewFile(null)}
           onDeleted={() => { setPreviewFile(null); loadMarked(); }}
           onRenamed={() => { setPreviewFile(null); loadMarked(); }}
