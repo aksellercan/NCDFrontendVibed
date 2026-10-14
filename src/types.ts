@@ -34,3 +34,9 @@ export interface CurrentUserDTO {
 }
 
 export type DeletionOptions = 'NORMAL' | 'NUCLEAR' | 'ONLY_IO';
+
+export interface UserProfile {
+  appearance: {
+    accentColor: string;
+  };
+}

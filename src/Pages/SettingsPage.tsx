@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { StartScan, StartScanWithOptions, ScanResponse, ScanDepthOption, ScanThumbnailOption } from '../Functions/StartScan';
 import { convertToNumber } from '../Functions/Numbers';
-import { CurrentUserDTO, DeletionOptions } from '../types';
+import { CurrentUserDTO, DeletionOptions, UserProfile } from '../types';
+import { loadUserProfile, saveUserProfile, applyUserProfile } from '../Functions/UserProfile';
 import '../Styles/settings.css';
 
 const DEPTH_OPTIONS: ScanDepthOption[] = [
@@ -39,10 +40,14 @@ export function SettingsPage() {
   const [thumbFileId, setThumbFileId] = useState(0);
   const [selectedDeletionOption, setSelectedDeletionOption] = useState<DeletionOptions>('NORMAL');
   const [thumbMessage, setThumbMessage] = useState("");
-
+  const [userProfile, setUserProfile] = useState<UserProfile>(() => loadUserProfile());
   useEffect(() => {
     fetchUserInfo();
   }, []);
+
+  useEffect(() => {
+    applyUserProfile(userProfile);
+  }, [userProfile]);
 
   async function fetchUserInfo() {
     try {
@@ -58,6 +63,16 @@ export function SettingsPage() {
     } catch (e) {
       console.error(e);
     }
+  }
+
+  function handleAccentColorChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const nextProfile: UserProfile = {
+      ...userProfile,
+      appearance: { ...userProfile.appearance, accentColor: e.currentTarget.value }
+    };
+    setUserProfile(nextProfile);
+    saveUserProfile(nextProfile);
+    applyUserProfile(nextProfile);
   }
 
   function handleFolderIdChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -411,6 +426,24 @@ export function SettingsPage() {
           >
             Delete Account
           </button>
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <h2 className="settings-subtitle">Appearance</h2>
+        <div className="thumbnail-controls">
+          <div className="thumbnail-control-row">
+            <label className="settings-label" htmlFor="accent-color">Main accent color</label>
+            <div className="update-row">
+              <input
+                id="accent-color"
+                type="color"
+                value={userProfile.appearance.accentColor}
+                onChange={handleAccentColorChange}
+                className="settings-input"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
