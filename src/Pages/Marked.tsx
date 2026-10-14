@@ -198,9 +198,9 @@ export function Marked() {
                   : no_thumbnail_file
                 }
                 alt="file"
-                onClick={() => isPreviewable(f.name) ? openPreviewFile(f) : downloadFile(f.id, f.name)}
+                onClick={() => isPreviewable(f.name) ? openPreviewFile(f) : downloadFile(f.id)}
               />
-              <p onClick={() => isPreviewable(f.name) ? openPreviewFile(f) : downloadFile(f.id, f.name)}>{f.name}</p>
+              <p onClick={() => isPreviewable(f.name) ? openPreviewFile(f) : downloadFile(f.id)}>{f.name}</p>
             </div>
           ))}
         </div>
