@@ -67,6 +67,7 @@ export function UploadButton({ currentFolderId }: UploadButtonProps) {
         fileInputRef.current!.value = '';
         saveLastUploadData(`Uploaded ${uploadedFilesId}`, 0);
         setProgress(0);
+        // The folder now holds new files, so the listing is reloaded.
         window.location.reload();
     }
 

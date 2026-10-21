@@ -3,19 +3,12 @@ import { downloadFile } from "../Functions/DownloadFile";
 import no_thumbnail_file from "../Media/file.png"
 import folderIcon from "../Media/folder.png"
 import { UploadButton } from "./UploadButton";
-import { FilePreviewModal } from "./FilePreviewModal";
+import { FilePreview, isPreviewable } from "./FilePreview";
 import "../Styles/filelist.css"
 import { CreateFolder } from "../Functions/CreateFolder";
 import { markItem } from "../Functions/MarkItem";
 import { FileItemDTO, FolderItemDTO } from "../types";
 import { formatBytes, formatDate } from "../Functions/Numbers";
-
-const PREVIEW_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg", ".mp4", ".webm", ".ogg", ".mov", ".avi", ".mkv"];
-
-function isPreviewable(fileName: string): boolean {
-  const lower = fileName.toLowerCase();
-  return PREVIEW_EXTENSIONS.some(ext => lower.endsWith(ext));
-}
 
 function getHashFolderId(): number | null {
   const hash = window.location.hash.replace(/^#/, "");
@@ -63,7 +56,7 @@ export function FileList() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
-  const [previewFile, setPreviewFile] = useState<FileItemDTO | null>(null);
+  const [previewFileId, setPreviewFileId] = useState<number | null>(null);
 
   const renameInputRef = useRef<HTMLInputElement>(null);
   const addMenuRef = useRef<HTMLDivElement>(null);
@@ -199,14 +192,7 @@ export function FileList() {
     return response;
   }
 
-  async function loadData(currentFolderId: number, sort: string, filter: string) {
-    let response: any;
-    if (filter !== "DEFAULT") {
-      response = await fetchFileListFiltered(currentFolderId, filter);
-    } else {
-      response = await fetchFileList(currentFolderId, sort);
-    }
-    const infoResponse = await fetchFolderInfo(currentFolderId);
+  function applyListData(listResponse: any, infoResponse: any) {
     if (infoResponse) {
       setBreadcrumbs(prev => {
         if (prev.length === 0) return [{ id: infoResponse.id, name: infoResponse.name }];
@@ -215,10 +201,27 @@ export function FileList() {
         return updated;
       });
     }
-    if (response) {
-      setFiles(response.files || []);
-      setFolders(response.folders || []);
+    if (listResponse) {
+      setFiles(listResponse.files || []);
+      setFolders(listResponse.folders || []);
     }
+  }
+
+  async function loadData(currentFolderId: number, sort: string, filter: string) {
+    let response: any;
+    if (filter !== "DEFAULT") {
+      response = await fetchFileListFiltered(currentFolderId, filter);
+    } else {
+      response = await fetchFileList(currentFolderId, sort);
+    }
+    const infoResponse = await fetchFolderInfo(currentFolderId);
+
+    applyListData(response, infoResponse);
+  }
+
+  // Reloads the listing from the server.
+  async function refreshData() {
+    await loadData(folderId, sortType, filterType);
   }
 
   const dataLoadedRef = useRef(false);
@@ -347,7 +350,7 @@ export function FileList() {
       await Promise.all(promises);
       setMessage("Deleted successfully");
       clearSelection();
-      loadData(folderId, sortType, filterType);
+      refreshData();
     } catch (e) {
       setMessage("Delete failed");
       console.error(e);
@@ -386,7 +389,7 @@ export function FileList() {
       if (response.success !== false) {
         setMessage("Renamed successfully");
         clearSelection();
-        loadData(folderId, sortType, filterType);
+        refreshData();
       } else {
         setMessage("Rename failed");
       }
@@ -417,43 +420,6 @@ export function FileList() {
       console.error(e);
     }
   }
-
-  function getPreviewableFiles() {
-    return files.filter(f => isPreviewable(f.name));
-  }
-
-  function openPreviewFile(file: FileItemDTO) {
-    const previewables = getPreviewableFiles();
-    const index = previewables.findIndex(f => f.id === file.id);
-    setPreviewFile({
-      ...file,
-      hasNext: () => index >= 0 && index < previewables.length - 1,
-      hasPrevious: () => index > 0,
-    });
-  }
-
-  function handleNextPreview() {
-    if (!previewFile) return;
-    const previewables = getPreviewableFiles();
-    const index = previewables.findIndex(f => f.id === previewFile.id);
-    if (index >= 0 && index < previewables.length - 1) {
-      openPreviewFile(previewables[index + 1]);
-    }
-  }
-
-  function handlePreviousPreview() {
-    if (!previewFile) return;
-    const previewables = getPreviewableFiles();
-    const index = previewables.findIndex(f => f.id === previewFile.id);
-    if (index > 0) {
-      openPreviewFile(previewables[index - 1]);
-    }
-  }
-
-  const previewableFileList = getPreviewableFiles();
-  const previewIndex = previewFile ? previewableFileList.findIndex(f => f.id === previewFile.id) : -1;
-  const hasNextPreview = previewIndex >= 0 && previewIndex < previewableFileList.length - 1;
-  const hasPreviousPreview = previewIndex > 0;
 
   async function handleMoveHere() {
     if (selectedCount === 0) return;
@@ -487,7 +453,7 @@ export function FileList() {
       await Promise.all(promises);
       setMessage(`Moved ${selectedCount} item(s) here`);
       clearSelection();
-      loadData(folderId, sortType, filterType);
+      refreshData();
     } catch (e) {
       setMessage("Move failed");
       console.error(e);
@@ -518,7 +484,7 @@ export function FileList() {
             <button className="add-btn" onClick={() => setShowAddMenu(prev => !prev)} title="Create folder / Upload">+</button>
             {showAddMenu && (
               <div className="popup-menu">
-                <CreateFolder currentFolderId={folderId} />
+                <CreateFolder currentFolderId={folderId} onCreated={() => refreshData()} />
                 <UploadButton currentFolderId={folderId} />
               </div>
             )}
@@ -688,14 +654,19 @@ export function FileList() {
                 >
                   ★
                 </button>
-                <img
-                  src={f.hasThumbnail
-                    ? `${process.env.REACT_APP_API_URL}/api/v1/thumbnails/getbyfileid?fileId=${f.id}`
-                    : no_thumbnail_file
-                  }
-                  alt="file"
-                  onClick={() => isPreviewable(f.name) ? openPreviewFile(f) : downloadFile(f.id)}
-                />
+                {f.hasThumbnail ? (
+                  <img
+                    src={`${process.env.REACT_APP_API_URL}/api/v1/thumbnails/getbyfileid?fileId=${f.id}`}
+                    alt="file"
+                    onClick={() => isPreviewable(f.name) ? setPreviewFileId(f.id) : downloadFile(f.id)}
+                  />
+                ) : (
+                  <img
+                    src={no_thumbnail_file}
+                    alt="file"
+                    onClick={() => isPreviewable(f.name) ? setPreviewFileId(f.id) : downloadFile(f.id)}
+                  />
+                )}
                 {renamingItem && renamingItem.type === 'file' && renamingItem.id === f.id ? (
                   <input
                     ref={renameInputRef}
@@ -707,7 +678,7 @@ export function FileList() {
                     onClick={e => e.stopPropagation()}
                   />
                 ) : (
-                  <p onClick={() => isPreviewable(f.name) ? openPreviewFile(f) : downloadFile(f.id)}>{f.name}</p>
+                  <p onClick={() => isPreviewable(f.name) ? setPreviewFileId(f.id) : downloadFile(f.id)}>{f.name}</p>
                 )}
               </div>
             ))}
@@ -735,24 +706,16 @@ export function FileList() {
         </div>
       )}
 
-      {previewFile && (
-        <FilePreviewModal
-          fileId={previewFile.id}
-          fileName={previewFile.name}
-          marked={previewFile.marked}
-          hasNext={hasNextPreview}
-          hasPrevious={hasPreviousPreview}
-          onClose={() => setPreviewFile(null)}
-          onDeleted={() => { setPreviewFile(null); loadData(folderId, sortType, filterType); }}
-          onRenamed={() => { setPreviewFile(null); loadData(folderId, sortType, filterType); }}
-          onMarkedChange={(marked) => {
-            setPreviewFile(prev => (prev ? { ...prev, marked, hasNext: prev.hasNext, hasPrevious: prev.hasPrevious } : null));
-            setFiles(prev => prev.map(f => f.id === previewFile.id ? { ...f, marked } : f));
-          }}
-          onNext={handleNextPreview}
-          onPrevious={handlePreviousPreview}
-        />
-      )}
+      <FilePreview
+        fileId={previewFileId}
+        files={files}
+        onClose={() => setPreviewFileId(null)}
+        onDeleted={() => { setPreviewFileId(null); refreshData(); }}
+        onRenamed={() => { setPreviewFileId(null); refreshData(); }}
+        onMarkedChange={(fileId, marked) => {
+          setFiles(prev => prev.map(f => f.id === fileId ? { ...f, marked } : f));
+        }}
+      />
     </div>
   );
 }

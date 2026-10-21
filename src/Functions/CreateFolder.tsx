@@ -2,9 +2,10 @@ import { useState, useRef } from "react";
 
 type CreateFolderCurrentFolderProps = {
     currentFolderId: number
+    onCreated?: () => void
 }
 
-export function CreateFolder({ currentFolderId }: CreateFolderCurrentFolderProps ) {
+export function CreateFolder({ currentFolderId, onCreated }: CreateFolderCurrentFolderProps ) {
     const [folderName, setFolderName] = useState("");
     const [response, setResponse] = useState("");
     const folderInput = useRef<HTMLInputElement>(null);
@@ -35,6 +36,8 @@ export function CreateFolder({ currentFolderId }: CreateFolderCurrentFolderProps
 
         setResponse(`Created: ID ${response.id} Name ${response.name}`);
         setFolderName("");
+        // The folder tree changed, so the parent reloads the listing.
+        onCreated?.();
     }
 
     return (
