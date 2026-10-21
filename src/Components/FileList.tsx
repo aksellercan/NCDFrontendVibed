@@ -4,11 +4,23 @@ import no_thumbnail_file from "../Media/file.png"
 import folderIcon from "../Media/folder.png"
 import { UploadButton } from "./UploadButton";
 import { FilePreview, isPreviewable } from "./FilePreview";
+import { CachedThumbnail } from "./CachedThumbnail";
 import "../Styles/filelist.css"
 import { CreateFolder } from "../Functions/CreateFolder";
 import { markItem } from "../Functions/MarkItem";
 import { FileItemDTO, FolderItemDTO } from "../types";
 import { formatBytes, formatDate } from "../Functions/Numbers";
+import {
+    cacheKeys,
+    invalidateContentCaches,
+    readCache,
+    writeCache,
+} from "../Functions/BrowserCache";
+
+interface CachedListPayload {
+    list: any;
+    info: any;
+}
 
 function getHashFolderId(): number | null {
   const hash = window.location.hash.replace(/^#/, "");
@@ -44,6 +56,7 @@ export function FileList() {
 
   const [files, setFiles] = useState<FileItemDTO[]>([]);
   const [folders, setFolders] = useState<FolderItemDTO[]>([]);
+  const [servedFromCache, setServedFromCache] = useState(false);
 
   const [selectMode, setSelectMode] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<Set<number>>(new Set());
@@ -192,14 +205,7 @@ export function FileList() {
     return response;
   }
 
-  async function loadData(currentFolderId: number, sort: string, filter: string) {
-    let response: any;
-    if (filter !== "DEFAULT") {
-      response = await fetchFileListFiltered(currentFolderId, filter);
-    } else {
-      response = await fetchFileList(currentFolderId, sort);
-    }
-    const infoResponse = await fetchFolderInfo(currentFolderId);
+  function applyListData(listResponse: any, infoResponse: any) {
     if (infoResponse) {
       setBreadcrumbs(prev => {
         if (prev.length === 0) return [{ id: infoResponse.id, name: infoResponse.name }];
@@ -208,10 +214,42 @@ export function FileList() {
         return updated;
       });
     }
-    if (response) {
-      setFiles(response.files || []);
-      setFolders(response.folders || []);
+    if (listResponse) {
+      setFiles(listResponse.files || []);
+      setFolders(listResponse.folders || []);
     }
+  }
+
+  async function loadData(currentFolderId: number, sort: string, filter: string) {
+    const cacheKey = cacheKeys.list(currentFolderId, sort, filter);
+
+    // Served from the browser cache: no request is made while the entry lives.
+    const cached = readCache<CachedListPayload>(cacheKey);
+    if (cached) {
+      applyListData(cached.list, cached.info);
+      setServedFromCache(true);
+      return;
+    }
+
+    let response: any;
+    if (filter !== "DEFAULT") {
+      response = await fetchFileListFiltered(currentFolderId, filter);
+    } else {
+      response = await fetchFileList(currentFolderId, sort);
+    }
+    const infoResponse = await fetchFolderInfo(currentFolderId);
+
+    if (response) {
+      writeCache(cacheKey, { list: response, info: infoResponse });
+    }
+    setServedFromCache(false);
+    applyListData(response, infoResponse);
+  }
+
+  // Drops the cached copies and reloads from the server.
+  async function refreshData() {
+    invalidateContentCaches();
+    await loadData(folderId, sortType, filterType);
   }
 
   const dataLoadedRef = useRef(false);
@@ -340,7 +378,7 @@ export function FileList() {
       await Promise.all(promises);
       setMessage("Deleted successfully");
       clearSelection();
-      loadData(folderId, sortType, filterType);
+      refreshData();
     } catch (e) {
       setMessage("Delete failed");
       console.error(e);
@@ -379,7 +417,7 @@ export function FileList() {
       if (response.success !== false) {
         setMessage("Renamed successfully");
         clearSelection();
-        loadData(folderId, sortType, filterType);
+        refreshData();
       } else {
         setMessage("Rename failed");
       }
@@ -403,6 +441,7 @@ export function FileList() {
     try {
       await markItem({ type, id }, marked);
       setMessage(marked ? "Marked as important" : "Unmarked");
+      invalidateContentCaches(id);
       setFiles(prev => prev.map(f => f.id === id && marked !== f.marked ? { ...f, marked } : f));
       setFolders(prev => prev.map(f => f.id === id && marked !== f.marked ? { ...f, marked } : f));
     } catch (e) {
@@ -443,7 +482,7 @@ export function FileList() {
       await Promise.all(promises);
       setMessage(`Moved ${selectedCount} item(s) here`);
       clearSelection();
-      loadData(folderId, sortType, filterType);
+      refreshData();
     } catch (e) {
       setMessage("Move failed");
       console.error(e);
@@ -474,7 +513,7 @@ export function FileList() {
             <button className="add-btn" onClick={() => setShowAddMenu(prev => !prev)} title="Create folder / Upload">+</button>
             {showAddMenu && (
               <div className="popup-menu">
-                <CreateFolder currentFolderId={folderId} />
+                <CreateFolder currentFolderId={folderId} onCreated={() => refreshData()} />
                 <UploadButton currentFolderId={folderId} />
               </div>
             )}
@@ -573,6 +612,13 @@ export function FileList() {
 
       {message && <p className="list-message">{message}</p>}
 
+      {servedFromCache && (
+        <div className="cache-banner">
+          <span>Showing cached data (clears from the browser after 30 minutes).</span>
+          <button className="cache-banner-btn" onClick={refreshData}>Refresh</button>
+        </div>
+      )}
+
       <div id="list-outer" className="fileListDiv">
         {folders.length > 0 && (
           <div id="folderList" className="folderDiv">
@@ -644,14 +690,19 @@ export function FileList() {
                 >
                   ★
                 </button>
-                <img
-                  src={f.hasThumbnail
-                    ? `${process.env.REACT_APP_API_URL}/api/v1/thumbnails/getbyfileid?fileId=${f.id}`
-                    : no_thumbnail_file
-                  }
-                  alt="file"
-                  onClick={() => isPreviewable(f.name) ? setPreviewFileId(f.id) : downloadFile(f.id)}
-                />
+                {f.hasThumbnail ? (
+                  <CachedThumbnail
+                    fileId={f.id}
+                    alt="file"
+                    onClick={() => isPreviewable(f.name) ? setPreviewFileId(f.id) : downloadFile(f.id)}
+                  />
+                ) : (
+                  <img
+                    src={no_thumbnail_file}
+                    alt="file"
+                    onClick={() => isPreviewable(f.name) ? setPreviewFileId(f.id) : downloadFile(f.id)}
+                  />
+                )}
                 {renamingItem && renamingItem.type === 'file' && renamingItem.id === f.id ? (
                   <input
                     ref={renameInputRef}
@@ -695,9 +746,10 @@ export function FileList() {
         fileId={previewFileId}
         files={files}
         onClose={() => setPreviewFileId(null)}
-        onDeleted={() => { setPreviewFileId(null); loadData(folderId, sortType, filterType); }}
-        onRenamed={() => { setPreviewFileId(null); loadData(folderId, sortType, filterType); }}
+        onDeleted={() => { setPreviewFileId(null); refreshData(); }}
+        onRenamed={() => { setPreviewFileId(null); refreshData(); }}
         onMarkedChange={(fileId, marked) => {
+          invalidateContentCaches(fileId);
           setFiles(prev => prev.map(f => f.id === fileId ? { ...f, marked } : f));
         }}
       />

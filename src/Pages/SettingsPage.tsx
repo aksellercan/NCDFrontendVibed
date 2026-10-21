@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { StartScan, StartScanWithOptions, ScanResponse, ScanDepthOption, ScanThumbnailOption } from '../Functions/StartScan';
-import { convertToNumber } from '../Functions/Numbers';
+import { convertToNumber, formatBytes } from '../Functions/Numbers';
 import { CurrentUserDTO, DeletionOptions, UserProfile } from '../types';
 import { loadUserProfile, saveUserProfile, applyUserProfile } from '../Functions/UserProfile';
+import { clearCache, getCacheStats, CACHE_TTL_MS } from '../Functions/BrowserCache';
 import '../Styles/settings.css';
 
 const DEPTH_OPTIONS: ScanDepthOption[] = [
@@ -41,6 +42,8 @@ export function SettingsPage() {
   const [selectedDeletionOption, setSelectedDeletionOption] = useState<DeletionOptions>('NORMAL');
   const [thumbMessage, setThumbMessage] = useState("");
   const [userProfile, setUserProfile] = useState<UserProfile>(() => loadUserProfile());
+  const [cacheStats, setCacheStats] = useState(() => getCacheStats());
+  const [cacheMessage, setCacheMessage] = useState("");
   useEffect(() => {
     fetchUserInfo();
   }, []);
@@ -192,6 +195,14 @@ export function SettingsPage() {
     }
   }
 
+  function handleClearCache() {
+    clearCache();
+    setCacheStats(getCacheStats());
+    setCacheMessage("Cache cleared");
+    // Reload so the pages fetch fresh data from the server.
+    setTimeout(() => window.location.reload(), 700);
+  }
+
   async function handleDeleteUser() {
     setShowDeleteUserConfirm(false);
     try {
@@ -202,6 +213,7 @@ export function SettingsPage() {
       if (response.success !== false) {
         localStorage.removeItem("user");
         sessionStorage.removeItem("file_list");
+        clearCache();
         window.location.reload();
       } else {
         setUserMessage("Failed to delete account");
@@ -444,6 +456,31 @@ export function SettingsPage() {
               />
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <h2 className="settings-subtitle">Cache</h2>
+
+        <div className="thumbnail-controls">
+          <div className="thumbnail-control-row">
+            <label className="settings-label">Browser cache</label>
+            <div className="update-row">
+              <span className="settings-cache-info">
+                {cacheStats.entries} cached item(s), about {formatBytes(cacheStats.bytes)}
+              </span>
+              <button onClick={handleClearCache} className="settings-button">Clear cache</button>
+            </div>
+          </div>
+
+          <p className="settings-hint">
+            Listings and images are kept in the browser for {Math.round(CACHE_TTL_MS / 60000)} minutes
+            and are removed automatically afterwards.
+          </p>
+
+          {cacheMessage && (
+            <div className="settings-message">{cacheMessage}</div>
+          )}
         </div>
       </div>
 

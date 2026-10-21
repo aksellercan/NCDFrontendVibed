@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import "./index.css"
 import { loadUserProfile, applyUserProfile } from "./Functions/UserProfile";
+import { purgeExpiredCache } from "./Functions/BrowserCache";
 import App from './App';
 import { ThemeProvider } from './Context/ThemeContext';
 import reportWebVitals from './reportWebVitals';
@@ -12,6 +13,10 @@ if (storedTheme) {
 }
 
 applyUserProfile(loadUserProfile());
+
+// Drop cached data that is older than the cache TTL (or belongs to another
+// user) so the browser does not keep stale listings around.
+purgeExpiredCache();
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement

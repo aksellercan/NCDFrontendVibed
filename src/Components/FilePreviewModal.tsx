@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { downloadFile } from "../Functions/DownloadFile";
 import { markItem } from "../Functions/MarkItem";
+import {
+    blobToDataUrl,
+    cacheKeys,
+    MAX_CACHED_BLOB_BYTES,
+    readCache,
+    writeCache,
+} from "../Functions/BrowserCache";
 
 const VIDEO_EXTENSIONS = [".mp4", ".webm", ".ogg", ".mov", ".avi", ".mkv"];
 const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg"];
@@ -97,6 +104,16 @@ export function FilePreviewModal({
       return;
     }
 
+    // Images are kept in the browser cache, so an image that was opened during
+    // the last 30 minutes is shown without hitting the server again.
+    const cacheKey = cacheKeys.preview(fileId);
+    const cached = readCache<string>(cacheKey);
+    if (cached) {
+      setMediaUrl(cached);
+      setLoadingMedia(false);
+      return;
+    }
+
     // Images are fetched into a blob URL so loading can be aborted when the
     // viewer is closed, and so the browser does not keep a cached copy.
     const xhr = new XMLHttpRequest();
@@ -126,6 +143,11 @@ export function FilePreviewModal({
         return;
       }
       const blob = xhr.response as Blob;
+      if (blob.size <= MAX_CACHED_BLOB_BYTES) {
+        blobToDataUrl(blob)
+          .then(dataUrl => writeCache(cacheKey, dataUrl))
+          .catch(() => { /* not cached, the blob URL is still used */ });
+      }
       const url = URL.createObjectURL(blob);
       objectUrlRef.current = url;
       setMediaUrl(url);

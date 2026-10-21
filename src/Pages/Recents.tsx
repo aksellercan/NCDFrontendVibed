@@ -4,9 +4,16 @@ import { downloadFile } from "../Functions/DownloadFile";
 import no_thumbnail_file from "../Media/file.png"
 import folderIcon from "../Media/folder.png"
 import { FilePreview, isPreviewable } from "../Components/FilePreview";
+import { CachedThumbnail } from "../Components/CachedThumbnail";
 import "../Styles/filelist.css"
 import { FileItemDTO, FolderItemDTO } from "../types";
 import { formatBytes, formatDate } from "../Functions/Numbers";
+import {
+    cacheKeys,
+    invalidateContentCaches,
+    readCache,
+    writeCache,
+} from "../Functions/BrowserCache";
 
 const SCROLL_THRESHOLD = 300;
 const GRID_PADDING = 30;
@@ -46,6 +53,7 @@ export function Recents() {
   const [viewMode, setViewMode] = useState(checkLocalStorageViewMode());
   const [pageSize] = useState(() => computePageSize(checkLocalStorageViewMode()));
   const [previewFileId, setPreviewFileId] = useState<number | null>(null);
+  const [servedFromCache, setServedFromCache] = useState(false);
   const navigate = useNavigate();
 
   const pagingRef = useRef({
@@ -70,10 +78,21 @@ export function Recents() {
     pagingRef.current.loadingMore = true;
     setLoadingMore(true);
 
-    const response = await fetch(
-      `${process.env.REACT_APP_API_URL}/api/v2/filesystem/recents/${endpoint}?page=${page}&size=${pageSize}`,
-      { method: "GET", credentials: "include" }
-    ).then(r => r.json()).catch(e => { console.error(e); return null; });
+    const cacheKey = cacheKeys.recents(endpoint, page);
+
+    // Served from the browser cache: no request is made while the entry lives.
+    let response: any = readCache<any>(cacheKey);
+    const fromCache = response !== null;
+    if (!fromCache) {
+      response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/v2/filesystem/recents/${endpoint}?page=${page}&size=${pageSize}`,
+        { method: "GET", credentials: "include" }
+      ).then(r => r.json()).catch(e => { console.error(e); return null; });
+      if (response) {
+        writeCache(cacheKey, response);
+      }
+    }
+    if (fromCache) setServedFromCache(true);
 
     const data = Array.isArray(response?.object) ? response.object[0] : response?.object;
 
@@ -109,7 +128,8 @@ export function Recents() {
     setLoading(false);
   }
 
-  function resetAndReload(targetMode: Mode = mode) {
+  function resetAndReload(targetMode: Mode = mode, forceRefresh = false) {
+    if (forceRefresh) invalidateContentCaches();
     pagingRef.current = {
       foldersPage: 0,
       filesPage: 0,
@@ -125,6 +145,12 @@ export function Recents() {
     setFoldersHasMore(true);
     setFilesHasMore(true);
     loadPage(targetMode);
+  }
+
+  // Drops the cached copies and reloads from the server.
+  function refresh() {
+    setServedFromCache(false);
+    resetAndReload(mode, true);
   }
 
   useEffect(() => {
@@ -226,6 +252,13 @@ export function Recents() {
         </label>
       </div>
 
+      {servedFromCache && (
+        <div className="cache-banner">
+          <span>Showing cached data (clears from the browser after 30 minutes).</span>
+          <button className="cache-banner-btn" onClick={refresh}>Refresh</button>
+        </div>
+      )}
+
       {loading ? (
         <p className="empty-folder">Loading...</p>
       ) : isEmpty ? (
@@ -259,14 +292,19 @@ export function Recents() {
                   className={`file ${viewMode === "LIST" ? "list-view" : ""}`}
                   title={`Name: ${f.name}\nCreated: ${formatDate(f.createdAt)}\nLast accessed: ${formatDate(f.lastAccessedAt)}\nSize: ${formatBytes(f.size)}\nType: ${f.mimeType}`}
                 >
-                  <img
-                    src={f.hasThumbnail
-                      ? `${process.env.REACT_APP_API_URL}/api/v1/thumbnails/getbyfileid?fileId=${f.id}`
-                      : no_thumbnail_file
-                    }
-                    alt="file"
-                    onClick={() => isPreviewable(f.name) ? setPreviewFileId(f.id) : downloadFile(f.id)}
-                  />
+                  {f.hasThumbnail ? (
+                    <CachedThumbnail
+                      fileId={f.id}
+                      alt="file"
+                      onClick={() => isPreviewable(f.name) ? setPreviewFileId(f.id) : downloadFile(f.id)}
+                    />
+                  ) : (
+                    <img
+                      src={no_thumbnail_file}
+                      alt="file"
+                      onClick={() => isPreviewable(f.name) ? setPreviewFileId(f.id) : downloadFile(f.id)}
+                    />
+                  )}
                   <p onClick={() => isPreviewable(f.name) ? setPreviewFileId(f.id) : downloadFile(f.id)}>{f.name}</p>
                 </div>
               ))}
@@ -280,10 +318,11 @@ export function Recents() {
         fileId={previewFileId}
         files={files}
         onClose={() => setPreviewFileId(null)}
-        onDeleted={() => { setPreviewFileId(null); resetAndReload(); }}
-        onRenamed={() => { setPreviewFileId(null); resetAndReload(); }}
+        onDeleted={() => { setPreviewFileId(null); resetAndReload(mode, true); }}
+        onRenamed={() => { setPreviewFileId(null); resetAndReload(mode, true); }}
         onGoToFolder={goToFileFolder}
         onMarkedChange={(fileId, marked) => {
+          invalidateContentCaches(fileId);
           setFiles(prev => prev.map(f => f.id === fileId ? { ...f, marked } : f));
         }}
       />

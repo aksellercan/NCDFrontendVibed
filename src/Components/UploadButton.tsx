@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { UploadFile } from "../Functions/UploadFile";
+import { invalidateContentCaches } from "../Functions/BrowserCache";
 import "../Styles/upload.css"
 
 type UploadButtonProps = {
@@ -67,6 +68,8 @@ export function UploadButton({ currentFolderId }: UploadButtonProps) {
         fileInputRef.current!.value = '';
         saveLastUploadData(`Uploaded ${uploadedFilesId}`, 0);
         setProgress(0);
+        // The folder now holds new files, so the cached listings are stale.
+        invalidateContentCaches();
         window.location.reload();
     }
 
