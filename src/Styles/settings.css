@@ -230,12 +230,6 @@
   color: var(--text-color);
 }
 
-.settings-cache-info {
-  margin-right: 12px;
-  font-size: 14px;
-  opacity: 0.8;
-}
-
 .settings-hint {
   margin: 4px 0 0;
   font-size: 13px;

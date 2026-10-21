@@ -1,5 +1,4 @@
 import { useState, useRef } from "react";
-import { invalidateContentCaches } from "./BrowserCache";
 
 type CreateFolderCurrentFolderProps = {
     currentFolderId: number
@@ -37,8 +36,7 @@ export function CreateFolder({ currentFolderId, onCreated }: CreateFolderCurrent
 
         setResponse(`Created: ID ${response.id} Name ${response.name}`);
         setFolderName("");
-        // The folder tree changed, so the cached listings are stale.
-        invalidateContentCaches();
+        // The folder tree changed, so the parent reloads the listing.
         onCreated?.();
     }
 

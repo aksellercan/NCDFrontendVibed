@@ -2,7 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import "./index.css"
 import { loadUserProfile, applyUserProfile } from "./Functions/UserProfile";
-import { purgeExpiredCache } from "./Functions/BrowserCache";
 import App from './App';
 import { ThemeProvider } from './Context/ThemeContext';
 import reportWebVitals from './reportWebVitals';
@@ -14,9 +13,16 @@ if (storedTheme) {
 
 applyUserProfile(loadUserProfile());
 
-// Drop cached data that is older than the cache TTL (or belongs to another
-// user) so the browser does not keep stale listings around.
-purgeExpiredCache();
+// Drop the entries written by the old localStorage cache, they are not used
+// anymore and would otherwise stay in the browser forever.
+try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("ncd_cache:")) localStorage.removeItem(key);
+    }
+} catch {
+    // Storage can be unavailable (private mode, disabled cookies); ignore.
+}
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement

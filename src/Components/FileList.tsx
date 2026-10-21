@@ -4,23 +4,11 @@ import no_thumbnail_file from "../Media/file.png"
 import folderIcon from "../Media/folder.png"
 import { UploadButton } from "./UploadButton";
 import { FilePreview, isPreviewable } from "./FilePreview";
-import { CachedThumbnail } from "./CachedThumbnail";
 import "../Styles/filelist.css"
 import { CreateFolder } from "../Functions/CreateFolder";
 import { markItem } from "../Functions/MarkItem";
 import { FileItemDTO, FolderItemDTO } from "../types";
 import { formatBytes, formatDate } from "../Functions/Numbers";
-import {
-    cacheKeys,
-    invalidateContentCaches,
-    readCache,
-    writeCache,
-} from "../Functions/BrowserCache";
-
-interface CachedListPayload {
-    list: any;
-    info: any;
-}
 
 function getHashFolderId(): number | null {
   const hash = window.location.hash.replace(/^#/, "");
@@ -56,7 +44,6 @@ export function FileList() {
 
   const [files, setFiles] = useState<FileItemDTO[]>([]);
   const [folders, setFolders] = useState<FolderItemDTO[]>([]);
-  const [servedFromCache, setServedFromCache] = useState(false);
 
   const [selectMode, setSelectMode] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<Set<number>>(new Set());
@@ -221,16 +208,6 @@ export function FileList() {
   }
 
   async function loadData(currentFolderId: number, sort: string, filter: string) {
-    const cacheKey = cacheKeys.list(currentFolderId, sort, filter);
-
-    // Served from the browser cache: no request is made while the entry lives.
-    const cached = readCache<CachedListPayload>(cacheKey);
-    if (cached) {
-      applyListData(cached.list, cached.info);
-      setServedFromCache(true);
-      return;
-    }
-
     let response: any;
     if (filter !== "DEFAULT") {
       response = await fetchFileListFiltered(currentFolderId, filter);
@@ -239,16 +216,11 @@ export function FileList() {
     }
     const infoResponse = await fetchFolderInfo(currentFolderId);
 
-    if (response) {
-      writeCache(cacheKey, { list: response, info: infoResponse });
-    }
-    setServedFromCache(false);
     applyListData(response, infoResponse);
   }
 
-  // Drops the cached copies and reloads from the server.
+  // Reloads the listing from the server.
   async function refreshData() {
-    invalidateContentCaches();
     await loadData(folderId, sortType, filterType);
   }
 
@@ -441,7 +413,6 @@ export function FileList() {
     try {
       await markItem({ type, id }, marked);
       setMessage(marked ? "Marked as important" : "Unmarked");
-      invalidateContentCaches(id);
       setFiles(prev => prev.map(f => f.id === id && marked !== f.marked ? { ...f, marked } : f));
       setFolders(prev => prev.map(f => f.id === id && marked !== f.marked ? { ...f, marked } : f));
     } catch (e) {
@@ -612,13 +583,6 @@ export function FileList() {
 
       {message && <p className="list-message">{message}</p>}
 
-      {servedFromCache && (
-        <div className="cache-banner">
-          <span>Showing cached data (clears from the browser after 30 minutes).</span>
-          <button className="cache-banner-btn" onClick={refreshData}>Refresh</button>
-        </div>
-      )}
-
       <div id="list-outer" className="fileListDiv">
         {folders.length > 0 && (
           <div id="folderList" className="folderDiv">
@@ -691,8 +655,8 @@ export function FileList() {
                   ★
                 </button>
                 {f.hasThumbnail ? (
-                  <CachedThumbnail
-                    fileId={f.id}
+                  <img
+                    src={`${process.env.REACT_APP_API_URL}/api/v1/thumbnails/getbyfileid?fileId=${f.id}`}
                     alt="file"
                     onClick={() => isPreviewable(f.name) ? setPreviewFileId(f.id) : downloadFile(f.id)}
                   />
@@ -749,7 +713,6 @@ export function FileList() {
         onDeleted={() => { setPreviewFileId(null); refreshData(); }}
         onRenamed={() => { setPreviewFileId(null); refreshData(); }}
         onMarkedChange={(fileId, marked) => {
-          invalidateContentCaches(fileId);
           setFiles(prev => prev.map(f => f.id === fileId ? { ...f, marked } : f));
         }}
       />

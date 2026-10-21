@@ -3,7 +3,6 @@ import "../Styles/navbar.css"
 import { useState, useEffect, useRef } from "react";
 import { DarkModeHandler } from "../Functions/DarkModeHandler";
 import { ReturnUsername } from "../Functions/ReturnUsername";
-import { clearCache } from "../Functions/BrowserCache";
 
 export function Navbar() {
     const [showNav, setShowNav] = useState(false)
@@ -29,8 +28,6 @@ export function Navbar() {
             console.log("Status code", r.status);
             localStorage.removeItem("user");
             sessionStorage.removeItem("file_list");
-            // Cached listings belong to the user that is logging out.
-            clearCache();
             window.location.reload();
         }).catch((e) => console.error(e));
     }

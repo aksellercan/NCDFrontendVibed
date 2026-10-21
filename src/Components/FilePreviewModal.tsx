@@ -1,28 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { downloadFile } from "../Functions/DownloadFile";
 import { markItem } from "../Functions/MarkItem";
-import {
-    blobToDataUrl,
-    cacheKeys,
-    MAX_CACHED_BLOB_BYTES,
-    readCache,
-    writeCache,
-} from "../Functions/BrowserCache";
 
 const VIDEO_EXTENSIONS = [".mp4", ".webm", ".ogg", ".mov", ".avi", ".mkv"];
-const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg"];
 
 function isVideoFile(fileName: string): boolean {
   const lower = fileName.toLowerCase();
   return VIDEO_EXTENSIONS.some(ext => lower.endsWith(ext));
 }
 
-function isImageFile(fileName: string): boolean {
-  const lower = fileName.toLowerCase();
-  return IMAGE_EXTENSIONS.some(ext => lower.endsWith(ext));
-}
-
 interface FilePreviewModalProps {
+  // Url of the media shown in the viewer, the browser loads and caches it.
+  imageUrl: string;
   fileId: number;
   fileName: string;
   marked?: boolean;
@@ -39,6 +28,7 @@ interface FilePreviewModalProps {
 }
 
 export function FilePreviewModal({
+  imageUrl,
   fileId,
   fileName,
   marked: initialMarked,
@@ -61,16 +51,10 @@ export function FilePreviewModal({
   const [togglingMark, setTogglingMark] = useState(false);
 
   const isVideo = isVideoFile(fileName);
-  const isImage = isImageFile(fileName);
 
-  const [mediaUrl, setMediaUrl] = useState("");
-  const [loadingMedia, setLoadingMedia] = useState(isImage);
-  const [mediaProgress, setMediaProgress] = useState<number | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
 
   const mediaRef = useRef<HTMLImageElement | HTMLVideoElement | null>(null);
-  const xhrRef = useRef<XMLHttpRequest | null>(null);
-  const objectUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     setMarked(initialMarked ?? false);
@@ -80,114 +64,15 @@ export function FilePreviewModal({
     setRenameValue(fileName);
   }, [fileName]);
 
-  // Load (and abort on cleanup) the media shown in the viewer.
   useEffect(() => {
-    // Reset per-file state.
     setMediaError(null);
-    setMediaUrl("");
-    setMediaProgress(null);
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
-      objectUrlRef.current = null;
-    }
-    if (xhrRef.current) {
-      xhrRef.current.abort();
-      xhrRef.current = null;
-    }
-
-    const downloadUrl = `${process.env.REACT_APP_API_URL}/api/v1/file/download?fileid=${fileId}`;
-
-    if (!isImage) {
-      // Videos (and other previewables) stream directly from the source.
-      setMediaUrl(downloadUrl);
-      setLoadingMedia(false);
-      return;
-    }
-
-    // Images are kept in the browser cache, so an image that was opened during
-    // the last 30 minutes is shown without hitting the server again.
-    const cacheKey = cacheKeys.preview(fileId);
-    const cached = readCache<string>(cacheKey);
-    if (cached) {
-      setMediaUrl(cached);
-      setLoadingMedia(false);
-      return;
-    }
-
-    // Images are fetched into a blob URL so loading can be aborted when the
-    // viewer is closed, and so the browser does not keep a cached copy.
-    const xhr = new XMLHttpRequest();
-    xhrRef.current = xhr;
-    xhr.open("GET", `${downloadUrl}&_=${Date.now()}`);
-    xhr.withCredentials = true;
-    xhr.responseType = "blob";
-
-    let cancelled = false;
-    setLoadingMedia(true);
-    setMediaProgress(0);
-
-    xhr.onprogress = (event) => {
-      if (cancelled) return;
-      if (event.lengthComputable && event.total > 0) {
-        setMediaProgress(Math.round((event.loaded / event.total) * 100));
-      } else {
-        setMediaProgress(null);
-      }
-    };
-
-    xhr.onload = () => {
-      if (cancelled) return;
-      if (xhr.status < 200 || xhr.status >= 300) {
-        setMediaError("Could not load file");
-        setLoadingMedia(false);
-        return;
-      }
-      const blob = xhr.response as Blob;
-      if (blob.size <= MAX_CACHED_BLOB_BYTES) {
-        blobToDataUrl(blob)
-          .then(dataUrl => writeCache(cacheKey, dataUrl))
-          .catch(() => { /* not cached, the blob URL is still used */ });
-      }
-      const url = URL.createObjectURL(blob);
-      objectUrlRef.current = url;
-      setMediaUrl(url);
-      setMediaError(null);
-      setMediaProgress(100);
-      setLoadingMedia(false);
-    };
-
-    xhr.onerror = () => {
-      if (cancelled) return;
-      console.error("Could not load file");
-      setMediaError("Could not load file");
-      setLoadingMedia(false);
-    };
-
-    xhr.send();
-
-    return () => {
-      cancelled = true;
-      xhr.abort();
-      xhrRef.current = null;
-      if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current);
-        objectUrlRef.current = null;
-      }
-      setMediaUrl("");
-      setMediaProgress(null);
-    };
-  }, [fileId, isImage]);
+  }, [imageUrl]);
 
   // Halt any in-flight media loading when the viewer is unmounted.
   useEffect(() => {
     return () => {
       const media = mediaRef.current;
       if (media) media.src = "";
-      if (xhrRef.current) xhrRef.current.abort();
-      if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current);
-        objectUrlRef.current = null;
-      }
     };
   }, []);
 
@@ -288,33 +173,22 @@ export function FilePreviewModal({
       <div className="preview-modal">
         <button className="preview-close" onClick={onClose}>✕</button>
         <div className="preview-content-container">
-          {loadingMedia ? (
-            <div className="preview-loading">
-              <p className="preview-filename">
-                {mediaProgress === null ? "Loading..." : `Loading... ${mediaProgress}%`}
-              </p>
-              <div className="preview-progress-track">
-                <div
-                  className={`preview-progress-fill ${mediaProgress === null ? "indeterminate" : ""}`}
-                  style={mediaProgress === null ? undefined : { width: `${mediaProgress}%` }}
-                />
-              </div>
-            </div>
-          ) : mediaError ? (
+          {mediaError ? (
             <p className="preview-filename">{mediaError}</p>
           ) : isVideo ? (
             <video
               ref={mediaRef as React.RefObject<HTMLVideoElement>}
-              src={mediaUrl || undefined}
+              src={imageUrl}
               controls
               className="preview-video"
             />
           ) : (
             <img
               ref={mediaRef as React.RefObject<HTMLImageElement>}
-              src={mediaUrl || undefined}
+              src={imageUrl}
               alt={fileName}
               className="preview-image"
+              onError={() => setMediaError("Could not load file")}
             />
           )}
         </div>

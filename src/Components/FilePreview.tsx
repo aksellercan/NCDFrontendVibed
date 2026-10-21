@@ -42,8 +42,12 @@ export function FilePreview({
 
   if (!file) return null;
 
+  // The browser loads and caches the media on its own.
+  const imageUrl = `${process.env.REACT_APP_API_URL}/api/v1/file/download?fileid=${file.id}`;
+
   return (
     <FilePreviewModal
+      imageUrl={imageUrl}
       fileId={file.id}
       fileName={file.name}
       marked={file.marked}

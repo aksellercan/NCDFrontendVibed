@@ -5,16 +5,9 @@ import { markItem } from "../Functions/MarkItem";
 import no_thumbnail_file from "../Media/file.png"
 import folderIcon from "../Media/folder.png"
 import { FilePreview, isPreviewable } from "../Components/FilePreview";
-import { CachedThumbnail } from "../Components/CachedThumbnail";
 import "../Styles/filelist.css"
 import { FileItemDTO, FolderItemDTO } from "../types";
 import { formatBytes, formatDate } from "../Functions/Numbers";
-import {
-    cacheKeys,
-    invalidateContentCaches,
-    readCache,
-    writeCache,
-} from "../Functions/BrowserCache";
 
 const SCROLL_THRESHOLD = 300;
 const GRID_PADDING = 30;
@@ -55,7 +48,6 @@ export function Marked() {
   const [pageSize] = useState(() => computePageSize(checkLocalStorageViewMode()));
   const [message, setMessage] = useState("");
   const [previewFileId, setPreviewFileId] = useState<number | null>(null);
-  const [servedFromCache, setServedFromCache] = useState(false);
   const navigate = useNavigate();
 
   const pagingRef = useRef({
@@ -78,21 +70,10 @@ export function Marked() {
     pagingRef.current.loadingMore = true;
     setLoadingMore(true);
 
-    const cacheKey = cacheKeys.marked(page);
-
-    // Served from the browser cache: no request is made while the entry lives.
-    let response: any = readCache<any>(cacheKey);
-    const fromCache = response !== null;
-    if (!fromCache) {
-      response = await fetch(
-        `${process.env.REACT_APP_API_URL}/api/v2/filesystem/marked?page=${page}&size=${pageSize}`,
-        { method: "GET", credentials: "include" }
-      ).then(r => r.json()).catch(e => { console.error(e); return null; });
-      if (response) {
-        writeCache(cacheKey, response);
-      }
-    }
-    if (fromCache) setServedFromCache(true);
+    const response: any = await fetch(
+      `${process.env.REACT_APP_API_URL}/api/v2/filesystem/marked?page=${page}&size=${pageSize}`,
+      { method: "GET", credentials: "include" }
+    ).then(r => r.json()).catch(e => { console.error(e); return null; });
 
     const data = Array.isArray(response?.object) ? response.object[0] : response?.object;
     const pageInfo = Array.isArray(response?.object) ? response.object[1] : null;
@@ -124,8 +105,7 @@ export function Marked() {
     setLoading(false);
   }
 
-  function resetAndReload(forceRefresh = false) {
-    if (forceRefresh) invalidateContentCaches();
+  function resetAndReload() {
     pagingRef.current = {
       page: 0,
       foldersHasMore: true,
@@ -140,12 +120,6 @@ export function Marked() {
     setFoldersHasMore(true);
     setFilesHasMore(true);
     loadPage();
-  }
-
-  // Drops the cached copies and reloads from the server.
-  function refresh() {
-    setServedFromCache(false);
-    resetAndReload(true);
   }
 
   useEffect(() => {
@@ -174,7 +148,6 @@ export function Marked() {
   async function handleUnmark(type: Mode, id: number) {
     try {
       await markItem(type === "FOLDERS" ? { type: 'folder', id } : { type: 'file', id }, false);
-      invalidateContentCaches(id);
       if (type === "FOLDERS") setFolders(prev => prev.filter(f => f.id !== id));
       else setFiles(prev => prev.filter(f => f.id !== id));
       setMessage("Unmarked");
@@ -261,13 +234,6 @@ export function Marked() {
 
       {message && <p className="list-message">{message}</p>}
 
-      {servedFromCache && (
-        <div className="cache-banner">
-          <span>Showing cached data (clears from the browser after 30 minutes).</span>
-          <button className="cache-banner-btn" onClick={refresh}>Refresh</button>
-        </div>
-      )}
-
       {loading ? (
         <p className="empty-folder">Loading...</p>
       ) : isEmpty ? (
@@ -314,8 +280,8 @@ export function Marked() {
                     ★
                   </button>
                   {f.hasThumbnail ? (
-                    <CachedThumbnail
-                      fileId={f.id}
+                    <img
+                      src={`${process.env.REACT_APP_API_URL}/api/v1/thumbnails/getbyfileid?fileId=${f.id}`}
                       alt="file"
                       onClick={() => isPreviewable(f.name) ? setPreviewFileId(f.id) : downloadFile(f.id)}
                     />
@@ -339,10 +305,9 @@ export function Marked() {
         fileId={previewFileId}
         files={files}
         onClose={() => setPreviewFileId(null)}
-        onDeleted={() => { setPreviewFileId(null); resetAndReload(true); }}
-        onRenamed={() => { setPreviewFileId(null); resetAndReload(true); }}
+        onDeleted={() => { setPreviewFileId(null); resetAndReload(); }}
+        onRenamed={() => { setPreviewFileId(null); resetAndReload(); }}
         onUnmarked={(fileId) => {
-          invalidateContentCaches(fileId);
           setFiles(prev => prev.filter(f => f.id !== fileId));
           setPreviewFileId(null);
         }}
