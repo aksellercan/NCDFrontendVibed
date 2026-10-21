@@ -1,21 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { downloadFile } from "../Functions/DownloadFile";
 import { markItem } from "../Functions/MarkItem";
 import no_thumbnail_file from "../Media/file.png"
 import folderIcon from "../Media/folder.png"
-import { FilePreviewModal } from "../Components/FilePreviewModal";
+import { FilePreview, isPreviewable } from "../Components/FilePreview";
 import "../Styles/filelist.css"
 import { FileItemDTO, FolderItemDTO } from "../types";
 import { formatBytes, formatDate } from "../Functions/Numbers";
 
-type Mode = "FOLDERS" | "FILES";
+const SCROLL_THRESHOLD = 300;
+const GRID_PADDING = 30;
+const GRID_CELL_MIN = 150;
+const GRID_GAP = 12;
+const GRID_ROW_HEIGHT = 148;
+const LIST_ROW_HEIGHT = 92;
+const MAX_PAGE_SIZE = 120;
 
-function isPreviewable(fileName: string): boolean {
-  const PREVIEW_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg", ".mp4", ".webm", ".ogg", ".mov", ".avi", ".mkv"];
-  const lower = fileName.toLowerCase();
-  return PREVIEW_EXTENSIONS.some(ext => lower.endsWith(ext));
-}
+type Mode = "FOLDERS" | "FILES";
 
 function checkLocalStorageViewMode(): string {
   const stored = localStorage.getItem("file_list");
@@ -23,32 +25,125 @@ function checkLocalStorageViewMode(): string {
   return JSON.parse(stored).view_mode;
 }
 
+function computePageSize(viewMode: string): number {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  const columns = viewMode === "LIST"
+    ? 1
+    : Math.max(1, Math.floor((width - GRID_PADDING) / (GRID_CELL_MIN + GRID_GAP)));
+  const rowHeight = viewMode === "LIST" ? LIST_ROW_HEIGHT : GRID_ROW_HEIGHT;
+  const rows = Math.max(1, Math.ceil(height / rowHeight));
+  return Math.min(MAX_PAGE_SIZE, Math.max(8, columns * rows));
+}
+
 export function Marked() {
   const [mode, setMode] = useState<Mode>("FOLDERS");
   const [folders, setFolders] = useState<FolderItemDTO[]>([]);
   const [files, setFiles] = useState<FileItemDTO[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [foldersHasMore, setFoldersHasMore] = useState(true);
+  const [filesHasMore, setFilesHasMore] = useState(true);
   const [viewMode, setViewMode] = useState(checkLocalStorageViewMode());
+  const [pageSize] = useState(() => computePageSize(checkLocalStorageViewMode()));
   const [message, setMessage] = useState("");
-  const [previewFile, setPreviewFile] = useState<FileItemDTO | null>(null);
+  const [previewFileId, setPreviewFileId] = useState<number | null>(null);
   const navigate = useNavigate();
 
+  const pagingRef = useRef({
+    page: 0,
+    foldersHasMore: true,
+    filesHasMore: true,
+    loading: true,
+    loadingMore: false,
+  });
+
+  function canLoad(targetMode: Mode): boolean {
+    const p = pagingRef.current;
+    if (p.loading || p.loadingMore) return false;
+    return targetMode === "FOLDERS" ? p.foldersHasMore : p.filesHasMore;
+  }
+
+  async function loadPage() {
+    if (pagingRef.current.loadingMore) return;
+    const page = pagingRef.current.page;
+    pagingRef.current.loadingMore = true;
+    setLoadingMore(true);
+
+    const response = await fetch(
+      `${process.env.REACT_APP_API_URL}/api/v2/filesystem/marked?page=${page}&size=${pageSize}`,
+      { method: "GET", credentials: "include" }
+    ).then(r => r.json()).catch(e => { console.error(e); return null; });
+
+    const data = Array.isArray(response?.object) ? response.object[0] : response?.object;
+    const pageInfo = Array.isArray(response?.object) ? response.object[1] : null;
+    const effectivePageSize = typeof pageInfo?.pageSize === "number" && pageInfo.pageSize > 0
+      ? pageInfo.pageSize
+      : pageSize;
+
+    const foldersData: FolderItemDTO[] = Array.isArray(data?.folders) ? data.folders : [];
+    const filesData: FileItemDTO[] = Array.isArray(data?.files) ? data.files : [];
+
+    setFolders(prev => {
+      const known = new Set(prev.map(f => f.id));
+      return [...prev, ...foldersData.filter(f => !known.has(f.id))];
+    });
+    setFiles(prev => {
+      const known = new Set(prev.map(f => f.id));
+      return [...prev, ...filesData.filter(f => !known.has(f.id))];
+    });
+
+    pagingRef.current.foldersHasMore = foldersData.length >= effectivePageSize;
+    pagingRef.current.filesHasMore = filesData.length >= effectivePageSize;
+    setFoldersHasMore(pagingRef.current.foldersHasMore);
+    setFilesHasMore(pagingRef.current.filesHasMore);
+    pagingRef.current.page = page + 1;
+
+    pagingRef.current.loadingMore = false;
+    pagingRef.current.loading = false;
+    setLoadingMore(false);
+    setLoading(false);
+  }
+
+  function resetAndReload() {
+    pagingRef.current = {
+      page: 0,
+      foldersHasMore: true,
+      filesHasMore: true,
+      loading: true,
+      loadingMore: false,
+    };
+    setFolders([]);
+    setFiles([]);
+    setLoading(true);
+    setLoadingMore(false);
+    setFoldersHasMore(true);
+    setFilesHasMore(true);
+    loadPage();
+  }
+
   useEffect(() => {
-    loadMarked();
+    loadPage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function loadMarked() {
-    setLoading(true);
-    const response = await fetch(
-      `${process.env.REACT_APP_API_URL}/api/v1/filesystem/marked`,
-      { method: "GET", credentials: "include" }
-    ).then(r => r.json()).catch(e => { console.error(e); return null; });
-    const data = Array.isArray(response?.object) ? response.object[0] : response?.object;
-    setFolders(Array.isArray(data?.folders) ? data.folders : []);
-    setFiles(Array.isArray(data?.files) ? data.files : []);
-    setLoading(false);
-  }
+  useEffect(() => {
+    function handleScroll() {
+      if (window.innerHeight + window.scrollY < document.documentElement.scrollHeight - SCROLL_THRESHOLD) return;
+      if (!canLoad(mode)) return;
+      loadPage();
+    }
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
+  useEffect(() => {
+    if (!canLoad(mode)) return;
+    if (document.documentElement.scrollHeight > window.innerHeight + SCROLL_THRESHOLD) return;
+    loadPage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, viewMode, folders, files, loading, loadingMore, foldersHasMore, filesHasMore]);
 
   async function handleUnmark(type: Mode, id: number) {
     try {
@@ -62,63 +157,53 @@ export function Marked() {
     }
   }
 
+  function onModeChange(chosenValue: Mode) {
+    if (chosenValue === mode) return;
+    setMode(chosenValue);
+    window.scrollTo(0, 0);
+  }
+
   function onViewModeChange(chosenValue: string) {
     setViewMode(chosenValue);
     localStorage.setItem("file_list", JSON.stringify({ view_mode: chosenValue }));
   }
 
-  function openFolder(fld: FolderItemDTO) {
+  function navigateToFolder(folderId: number, folderName: string) {
     const stored = sessionStorage.getItem("file_list");
     const parsed = stored ? JSON.parse(stored) : {};
     sessionStorage.setItem("file_list", JSON.stringify({
-      current_folder: fld.id,
-      navigation_history: [0, fld.id],
+      current_folder: folderId,
+      navigation_history: [0, folderId],
       forward_stack: [],
       sort_type: parsed.sort_type || "ALPHABETICAL",
-      breadcrumbs: [{ id: 0, name: "Root" }, { id: fld.id, name: fld.name }]
+      breadcrumbs: [{ id: 0, name: "Root" }, { id: folderId, name: folderName }]
     }));
     navigate("/");
   }
 
-  function getPreviewableFiles() {
-    return (mode === "FOLDERS" ? [] : files).filter(f => isPreviewable(f.name));
+  function openFolder(fld: FolderItemDTO) {
+    navigateToFolder(fld.id, fld.name);
   }
 
-  function openPreviewFile(file: FileItemDTO) {
-    const previewables = getPreviewableFiles();
-    const index = previewables.findIndex(f => f.id === file.id);
-    setPreviewFile({
-      ...file,
-      hasNext: () => index >= 0 && index < previewables.length - 1,
-      hasPrevious: () => index > 0,
-    });
+  function goToFileFolder(fileId: number) {
+    fetch(`${process.env.REACT_APP_API_URL}/api/v1/info/get/filemetadata?fileid=${fileId}`, {
+      method: "GET",
+      credentials: "include"
+    }).then(r => r.json()).then(meta => {
+      const folderId = typeof meta?.folderId === "number" ? meta.folderId : null;
+      if (folderId === null) return;
+      fetch(`${process.env.REACT_APP_API_URL}/api/v1/info/get/foldermetadata?folderid=${folderId}`, {
+        method: "GET",
+        credentials: "include"
+      }).then(r => r.json()).then(info => {
+        navigateToFolder(folderId, info?.name || "");
+      }).catch(() => navigateToFolder(folderId, ""));
+    }).catch(e => console.error(e));
   }
-
-  function handleNextPreview() {
-    if (!previewFile) return;
-    const previewables = getPreviewableFiles();
-    const index = previewables.findIndex(f => f.id === previewFile.id);
-    if (index >= 0 && index < previewables.length - 1) {
-      openPreviewFile(previewables[index + 1]);
-    }
-  }
-
-  function handlePreviousPreview() {
-    if (!previewFile) return;
-    const previewables = getPreviewableFiles();
-    const index = previewables.findIndex(f => f.id === previewFile.id);
-    if (index > 0) {
-      openPreviewFile(previewables[index - 1]);
-    }
-  }
-
-  const previewableFileList = getPreviewableFiles();
-  const previewIndex = previewFile ? previewableFileList.findIndex(f => f.id === previewFile.id) : -1;
-  const hasNextPreview = previewIndex >= 0 && previewIndex < previewableFileList.length - 1;
-  const hasPreviousPreview = previewIndex > 0;
 
   const currentList = mode === "FOLDERS" ? folders : files;
-  const isEmpty = !loading && currentList.length === 0;
+  const currentHasMore = mode === "FOLDERS" ? foldersHasMore : filesHasMore;
+  const isEmpty = !loading && currentList.length === 0 && !currentHasMore;
 
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
@@ -127,13 +212,13 @@ export function Marked() {
         <div className="mode-switch">
           <button
             className={mode === "FOLDERS" ? "active" : ""}
-            onClick={() => setMode("FOLDERS")}
+            onClick={() => onModeChange("FOLDERS")}
           >
             Folders
           </button>
           <button
             className={mode === "FILES" ? "active" : ""}
-            onClick={() => setMode("FILES")}
+            onClick={() => onModeChange("FILES")}
           >
             Files
           </button>
@@ -153,74 +238,76 @@ export function Marked() {
         <p className="empty-folder">Loading...</p>
       ) : isEmpty ? (
         <p className="empty-folder">No marked {mode === "FOLDERS" ? "folders" : "files"}</p>
-      ) : mode === "FOLDERS" ? (
-        <div id="folderList" className="folderDiv">
-          {folders.map(fld => (
-            <div
-              key={`folder-${fld.id}`}
-              className={`folder ${viewMode === "LIST" ? "list-view" : ""}`}
-              title={`Name: ${fld.name}\nCreated: ${formatDate(fld.createdAt)}\nLast accessed: ${formatDate(fld.lastAccessedAt)}`}
-            >
-              <button
-                className="mark-btn marked"
-                title="Unmark"
-                onClick={() => handleUnmark("FOLDERS", fld.id)}
-              >
-                ★
-              </button>
-              <img
-                src={folderIcon}
-                alt="folder"
-                onClick={() => openFolder(fld)}
-              />
-              <p onClick={() => openFolder(fld)}>{fld.name}</p>
-            </div>
-          ))}
-        </div>
       ) : (
-        <div id="fileList" className="fileDiv">
-          {files.map(f => (
-            <div
-              key={`file-${f.id}`}
-              className={`file ${viewMode === "LIST" ? "list-view" : ""}`}
-              title={`Name: ${f.name}\nCreated: ${formatDate(f.createdAt)}\nLast accessed: ${formatDate(f.lastAccessedAt)}\nSize: ${formatBytes(f.size)}\nType: ${f.mimeType}`}
-            >
-              <button
-                className="mark-btn marked"
-                title="Unmark"
-                onClick={() => handleUnmark("FILES", f.id)}
-              >
-                ★
-              </button>
-              <img
-                src={f.hasThumbnail
-                  ? `${process.env.REACT_APP_API_URL}/api/v1/thumbnails/getbyfileid?fileId=${f.id}`
-                  : no_thumbnail_file
-                }
-                alt="file"
-                onClick={() => isPreviewable(f.name) ? openPreviewFile(f) : downloadFile(f.id)}
-              />
-              <p onClick={() => isPreviewable(f.name) ? openPreviewFile(f) : downloadFile(f.id)}>{f.name}</p>
+        <>
+          {mode === "FOLDERS" ? (
+            <div id="folderList" className="folderDiv">
+              {folders.map(fld => (
+                <div
+                  key={`folder-${fld.id}`}
+                  className={`folder ${viewMode === "LIST" ? "list-view" : ""}`}
+                  title={`Name: ${fld.name}\nCreated: ${formatDate(fld.createdAt)}\nLast accessed: ${formatDate(fld.lastAccessedAt)}`}
+                >
+                  <button
+                    className="mark-btn marked"
+                    title="Unmark"
+                    onClick={() => handleUnmark("FOLDERS", fld.id)}
+                  >
+                    ★
+                  </button>
+                  <img
+                    src={folderIcon}
+                    alt="folder"
+                    onClick={() => openFolder(fld)}
+                  />
+                  <p onClick={() => openFolder(fld)}>{fld.name}</p>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          ) : (
+            <div id="fileList" className="fileDiv">
+              {files.map(f => (
+                <div
+                  key={`file-${f.id}`}
+                  className={`file ${viewMode === "LIST" ? "list-view" : ""}`}
+                  title={`Name: ${f.name}\nCreated: ${formatDate(f.createdAt)}\nLast accessed: ${formatDate(f.lastAccessedAt)}\nSize: ${formatBytes(f.size)}\nType: ${f.mimeType}`}
+                >
+                  <button
+                    className="mark-btn marked"
+                    title="Unmark"
+                    onClick={() => handleUnmark("FILES", f.id)}
+                  >
+                    ★
+                  </button>
+                  <img
+                    src={f.hasThumbnail
+                      ? `${process.env.REACT_APP_API_URL}/api/v1/thumbnails/getbyfileid?fileId=${f.id}`
+                      : no_thumbnail_file
+                    }
+                    alt="file"
+                    onClick={() => isPreviewable(f.name) ? setPreviewFileId(f.id) : downloadFile(f.id)}
+                  />
+                  <p onClick={() => isPreviewable(f.name) ? setPreviewFileId(f.id) : downloadFile(f.id)}>{f.name}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          {loadingMore && <p className="loading-more">Loading more...</p>}
+        </>
       )}
 
-      {previewFile && (
-        <FilePreviewModal
-          fileId={previewFile.id}
-          fileName={previewFile.name}
-          marked={previewFile.marked ?? true}
-          hasNext={hasNextPreview}
-          hasPrevious={hasPreviousPreview}
-          onClose={() => setPreviewFile(null)}
-          onDeleted={() => { setPreviewFile(null); loadMarked(); }}
-          onRenamed={() => { setPreviewFile(null); loadMarked(); }}
-          onUnmarked={() => { setPreviewFile(null); loadMarked(); }}
-          onNext={handleNextPreview}
-          onPrevious={handlePreviousPreview}
-        />
-      )}
+      <FilePreview
+        fileId={previewFileId}
+        files={files}
+        onClose={() => setPreviewFileId(null)}
+        onDeleted={() => { setPreviewFileId(null); resetAndReload(); }}
+        onRenamed={() => { setPreviewFileId(null); resetAndReload(); }}
+        onUnmarked={(fileId) => {
+          setFiles(prev => prev.filter(f => f.id !== fileId));
+          setPreviewFileId(null);
+        }}
+        onGoToFolder={goToFileFolder}
+      />
     </div>
   );
 }

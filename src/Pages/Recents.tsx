@@ -3,12 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { downloadFile } from "../Functions/DownloadFile";
 import no_thumbnail_file from "../Media/file.png"
 import folderIcon from "../Media/folder.png"
-import { FilePreviewModal } from "../Components/FilePreviewModal";
+import { FilePreview, isPreviewable } from "../Components/FilePreview";
 import "../Styles/filelist.css"
 import { FileItemDTO, FolderItemDTO } from "../types";
 import { formatBytes, formatDate } from "../Functions/Numbers";
 
-const PREVIEW_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg", ".mp4", ".webm", ".ogg", ".mov", ".avi", ".mkv"];
 const SCROLL_THRESHOLD = 300;
 const GRID_PADDING = 30;
 const GRID_CELL_MIN = 150;
@@ -18,11 +17,6 @@ const LIST_ROW_HEIGHT = 92;
 const MAX_PAGE_SIZE = 120;
 
 type Mode = "FOLDERS" | "FILES";
-
-function isPreviewable(fileName: string): boolean {
-  const lower = fileName.toLowerCase();
-  return PREVIEW_EXTENSIONS.some(ext => lower.endsWith(ext));
-}
 
 function checkLocalStorageViewMode(): string {
   const stored = localStorage.getItem("file_list");
@@ -51,7 +45,7 @@ export function Recents() {
   const [filesHasMore, setFilesHasMore] = useState(true);
   const [viewMode, setViewMode] = useState(checkLocalStorageViewMode());
   const [pageSize] = useState(() => computePageSize(checkLocalStorageViewMode()));
-  const [previewFile, setPreviewFile] = useState<FileItemDTO | null>(null);
+  const [previewFileId, setPreviewFileId] = useState<number | null>(null);
   const navigate = useNavigate();
 
   const pagingRef = useRef({
@@ -201,43 +195,6 @@ export function Recents() {
     }).catch(e => console.error(e));
   }
 
-  function getPreviewableFiles() {
-    return files.filter(f => isPreviewable(f.name));
-  }
-
-  function openPreviewFile(file: FileItemDTO) {
-    const previewables = getPreviewableFiles();
-    const index = previewables.findIndex(f => f.id === file.id);
-    setPreviewFile({
-      ...file,
-      hasNext: () => index >= 0 && index < previewables.length - 1,
-      hasPrevious: () => index > 0,
-    });
-  }
-
-  function handleNextPreview() {
-    if (!previewFile) return;
-    const previewables = getPreviewableFiles();
-    const index = previewables.findIndex(f => f.id === previewFile.id);
-    if (index >= 0 && index < previewables.length - 1) {
-      openPreviewFile(previewables[index + 1]);
-    }
-  }
-
-  function handlePreviousPreview() {
-    if (!previewFile) return;
-    const previewables = getPreviewableFiles();
-    const index = previewables.findIndex(f => f.id === previewFile.id);
-    if (index > 0) {
-      openPreviewFile(previewables[index - 1]);
-    }
-  }
-
-  const previewableFileList = getPreviewableFiles();
-  const previewIndex = previewFile ? previewableFileList.findIndex(f => f.id === previewFile.id) : -1;
-  const hasNextPreview = previewIndex >= 0 && previewIndex < previewableFileList.length - 1;
-  const hasPreviousPreview = previewIndex > 0;
-
   const currentList = mode === "FOLDERS" ? folders : files;
   const currentHasMore = mode === "FOLDERS" ? foldersHasMore : filesHasMore;
   const isEmpty = !loading && currentList.length === 0 && !currentHasMore;
@@ -308,9 +265,9 @@ export function Recents() {
                       : no_thumbnail_file
                     }
                     alt="file"
-                    onClick={() => isPreviewable(f.name) ? openPreviewFile(f) : downloadFile(f.id)}
+                    onClick={() => isPreviewable(f.name) ? setPreviewFileId(f.id) : downloadFile(f.id)}
                   />
-                  <p onClick={() => isPreviewable(f.name) ? openPreviewFile(f) : downloadFile(f.id)}>{f.name}</p>
+                  <p onClick={() => isPreviewable(f.name) ? setPreviewFileId(f.id) : downloadFile(f.id)}>{f.name}</p>
                 </div>
               ))}
             </div>
@@ -319,25 +276,17 @@ export function Recents() {
         </>
       )}
 
-      {previewFile && (
-        <FilePreviewModal
-          fileId={previewFile.id}
-          fileName={previewFile.name}
-          marked={previewFile.marked}
-          hasNext={hasNextPreview}
-          hasPrevious={hasPreviousPreview}
-          onClose={() => setPreviewFile(null)}
-          onDeleted={() => { setPreviewFile(null); resetAndReload(); }}
-          onRenamed={() => { setPreviewFile(null); resetAndReload(); }}
-          onGoToFolder={() => goToFileFolder(previewFile.id)}
-          onMarkedChange={(marked) => {
-            setPreviewFile(prev => (prev ? { ...prev, marked, hasNext: prev.hasNext, hasPrevious: prev.hasPrevious } : null));
-            setFiles(prev => prev.map(f => f.id === previewFile.id ? { ...f, marked } : f));
-          }}
-          onNext={handleNextPreview}
-          onPrevious={handlePreviousPreview}
-        />
-      )}
+      <FilePreview
+        fileId={previewFileId}
+        files={files}
+        onClose={() => setPreviewFileId(null)}
+        onDeleted={() => { setPreviewFileId(null); resetAndReload(); }}
+        onRenamed={() => { setPreviewFileId(null); resetAndReload(); }}
+        onGoToFolder={goToFileFolder}
+        onMarkedChange={(fileId, marked) => {
+          setFiles(prev => prev.map(f => f.id === fileId ? { ...f, marked } : f));
+        }}
+      />
     </div>
   );
 }
